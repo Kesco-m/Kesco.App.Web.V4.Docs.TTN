@@ -1,0 +1,66 @@
+﻿/*Вставка вертикального отступа*/
+.spacer
+{
+    display:block;
+    height: 5px;
+}
+
+/*Блок включающий в себя метку и элемент управления, который может размещаться на одной линии с другими блоками*/
+div.inline_predicate_block
+{
+    min-height: 30px;
+    display: block;
+    margin-top:5px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/*Блок включающий в себя метку и элемент управления или другие блоки, который размещается на линии один*/
+div.predicate_block
+{
+    min-height: 30px;
+    display: block;
+    margin-top:5px;
+}
+
+/*Блок включающий в себя метку сверху и текстовую область, который размещается на линии один*/
+div.area_block
+{
+    min-height: 70px;
+    display: block;
+    margin-top:5px;
+}
+
+/*Метка которая размещается на одной линии с элементом управления есть место*/
+div.label
+{
+    width: 120px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/*Запрещенный элемент имеет серую метку*/
+div.disabled_label
+{
+    color: Gray;
+}
+
+/*Класс используется для вертикального выравнивания элементов типа DBSelect*/
+div.aligned_control
+{
+    width: 226px;
+    vertical-align: middle;
+    margin-right:20px;
+}
+
+/*Класс используется для горизонтального центрирования элементов в пределах заданной ширины*/
+center
+{
+    width: 680px;
+}
+
+/*Класс определят цвет для отображения в заголовке надписи Отсутствует для обязательных полей*/
+.required_info
+{
+    color:#3399FF;
+}
