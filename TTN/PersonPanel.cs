@@ -7,6 +7,7 @@ using Kesco.Lib.Web.DBSelect.V4;
 using Kesco.Lib.Entities.Persons;
 using Kesco.Lib.Entities.Stores;
 using Kesco.Lib.BaseExtention.Enums.Controls;
+using Item = Kesco.Lib.Entities.Item;
 
 namespace Kesco.App.Web.Docs.TTN
 {
@@ -53,6 +54,8 @@ namespace Kesco.App.Web.Docs.TTN
 		//Сссылка на связанную панель
 		private PersonPanel _p;
 
+	    private Nakladnaya n;
+
 		/// <summary>
 		/// Статический метод создания объекта-контроллера, для инициализации элементов панели и управления панелью
 		/// </summary>
@@ -77,11 +80,13 @@ namespace Kesco.App.Web.Docs.TTN
 		//Закрытый конструктор по умолчанию
 		private PersonPanel()
 		{
-		}
+        }
 
 		//Закрытый конструктор с инициализаторами закрытых полей
 		private PersonPanel(Nakladnaya page, string prefix, TextBox info, TextBox code, DBSPerson person, DBSPersonContact address, DBSTransportNode transport_node, DBSStore store, TextBox store_info, TextBox notes)
 		{
+            n = new Nakladnaya();
+
 			_page = page;
 			_prefix = prefix;
 			_info = info;
@@ -241,7 +246,7 @@ namespace Kesco.App.Web.Docs.TTN
 		{
 			V4Control[] ctrls = { _person, _transport_node, _address, _store, _notes };
 
-			string dataInfo = Nakladnaya.GetSectionHtmlDescription(ctrls);
+            string dataInfo = n.GetSectionHtmlDescription(ctrls);
 
 			string strNtfInfo = string.Empty;
 
@@ -396,12 +401,13 @@ namespace Kesco.App.Web.Docs.TTN
 		/// <param name="args">Параметры события</param>
 		private void Store_Changed(object sender, ProperyChangedEventArgs args)
 		{
-			Kesco.Lib.Entities.Item s;
+			Kesco.Lib.Entities.Item s = new Item();
 
-			if (null != _store.ValueObject)
-				s = (Kesco.Lib.Entities.Item)_store.ValueObject;
-
-			//ValueObject не коррелирует с Value, оно устанавливается только при выборе значения из списка
+		    if (null != _store.ValueObject)
+		    {
+		        s = (Kesco.Lib.Entities.Item) _store.ValueObject;
+		    }
+		    //ValueObject не коррелирует с Value, оно устанавливается только при выборе значения из списка
 			if (string.IsNullOrEmpty(_store.Value) || null == s.Value)
 			{
 				_page.Hide(_prefix + "StoreInfoPanel");
@@ -444,13 +450,15 @@ namespace Kesco.App.Web.Docs.TTN
 			if (string.IsNullOrEmpty(_store.Value)) return;
 
 			Kesco.Lib.Entities.Item s;
-			if (null != _store.ValueObject)
-				s = (Kesco.Lib.Entities.Item)_store.ValueObject;
+            if (null != _store.ValueObject)
+            {
+                s = (Kesco.Lib.Entities.Item) _store.ValueObject;
 
-			if (_store_info.Value != ((string)s.Value).TrimStart())//В названии склада могут быть ведущие пробелы
-			{
-				ntf.Add(Nakladnaya.ControlNtfs.InfoStore, NtfStatus.Error);
-			}
+                if (_store_info.Value != ((string) s.Value).TrimStart()) //В названии склада могут быть ведущие пробелы
+                {
+                    ntf.Add(n.ControlNtfs.InfoStore, NtfStatus.Error);
+                }
+            }
 		}
 
 		/// <summary>
@@ -483,7 +491,7 @@ namespace Kesco.App.Web.Docs.TTN
 
 			if (display_ntf)
 			{
-				ntf.Add(Nakladnaya.ControlNtfs.PersonInfo[_prefix], NtfStatus.Error);
+                ntf.Add(n.ControlNtfs.PersonInfo[_prefix], NtfStatus.Error);
 			}
 		}
 
@@ -498,15 +506,15 @@ namespace Kesco.App.Web.Docs.TTN
 
 			if (string.IsNullOrEmpty(_person.Value)) return;
 
-			if (string.IsNullOrEmpty(_code.Value))
+            if (string.IsNullOrEmpty(_code.Value))
 			{
-				ntf.Add(Nakladnaya.ControlNtfs.PersonNoCode[_prefix], NtfStatus.Error);
+                ntf.Add(n.ControlNtfs.PersonNoCode[_prefix], NtfStatus.Error);
 				return;
 			}
 
 			if (_code.Value != _current_code)
 			{
-				ntf.Add(Nakladnaya.ControlNtfs.PersonCode[_prefix], NtfStatus.Error);
+                ntf.Add(n.ControlNtfs.PersonCode[_prefix], NtfStatus.Error);
 			}
 		}
 	}

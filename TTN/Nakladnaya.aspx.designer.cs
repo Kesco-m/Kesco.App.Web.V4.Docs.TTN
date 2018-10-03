@@ -202,6 +202,15 @@ namespace Kesco.App.Web.Docs.TTN {
         protected global::Kesco.Lib.Web.Controls.V4.TextBox GpNotes;
         
         /// <summary>
+        /// checkboxShipper элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlInputCheckBox checkboxShipper;
+        
+        /// <summary>
         /// ShipperInfo элемент управления.
         /// </summary>
         /// <remarks>
@@ -308,6 +317,15 @@ namespace Kesco.App.Web.Docs.TTN {
         /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
         /// </remarks>
         protected global::Kesco.Lib.Web.DBSelect.V4.DBSPosition StoreKeeperPosition;
+        
+        /// <summary>
+        /// checkboxPayer элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlInputCheckBox checkboxPayer;
         
         /// <summary>
         /// PayerInfo элемент управления.
@@ -497,5 +515,86 @@ namespace Kesco.App.Web.Docs.TTN {
         /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
         /// </remarks>
         protected global::Kesco.Lib.Web.DBSelect.V4.DBSDocument CarTtn;
+        
+        /// <summary>
+        /// rbProductSelect элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.Radio rbProductSelect;
+        
+        /// <summary>
+        /// hrSelectVagon элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HyperLink hrSelectVagon;
+        
+        /// <summary>
+        /// MonthResource элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.DatePicker MonthResource;
+        
+        /// <summary>
+        /// DBSShipperStore элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.DBSelect.V4.DBSStore DBSShipperStore;
+        
+        /// <summary>
+        /// DBSPayerStore элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.DBSelect.V4.DBSStore DBSPayerStore;
+        
+        /// <summary>
+        /// addResource элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.Button addResource;
+        
+        /// <summary>
+        /// GridResource элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.Grid.Grid GridResource;
+        
+        /// <summary>
+        /// addFactUsl элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.Button addFactUsl;
+        
+        /// <summary>
+        /// GridUsl элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.Grid.Grid GridUsl;
     }
 }

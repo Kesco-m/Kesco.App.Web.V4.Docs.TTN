@@ -51,16 +51,47 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="FactUslForm.aspx" />
     <Content Include="Global.asax" />
+    <Content Include="hlp\mris\Contents\default.htm" />
+    <Content Include="hlp\mris\default.htm" />
+    <Content Include="hlp\mris\help.htm" />
+    <Content Include="hlp\mris\index.htm" />
+    <Content Include="hlp\mris\script.js" />
+    <Content Include="hlp\mris\style.css" />
+    <Content Include="hlp\factusl\Contents\default.htm" />
+    <Content Include="hlp\factusl\default.htm" />
+    <Content Include="hlp\factusl\help.htm" />
+    <Content Include="hlp\factusl\index.htm" />
+    <Content Include="hlp\factusl\script.js" />
+    <Content Include="hlp\factusl\style.css" />
+    <Content Include="hlp\nakladnaya\Contents\default.htm" />
+    <Content Include="hlp\nakladnaya\default.htm" />
+    <Content Include="hlp\nakladnaya\help.htm" />
+    <Content Include="hlp\nakladnaya\index.htm" />
+    <Content Include="hlp\nakladnaya\script.js" />
+    <Content Include="hlp\nakladnaya\style.css" />
+    <Content Include="Kesco.Mris.js" />
     <Content Include="Nakladnaya.aspx" />
     <Content Include="Nakladnaya.css" />
     <Content Include="Nakladnaya.js" />
+    <Content Include="MrisForm.aspx" />
+    <Content Include="testbind.aspx" />
+    <Content Include="Vagon.aspx" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
+    <Content Include="Kesco.FactUsl.js" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ClientScripts.cs" />
+    <Compile Include="FactUslForm.aspx.cs">
+      <DependentUpon>FactUslForm.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="FactUslForm.aspx.designer.cs">
+      <DependentUpon>FactUslForm.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
@@ -72,12 +103,37 @@
       <DependentUpon>Nakladnaya.aspx</DependentUpon>
     </Compile>
     <Compile Include="PersonPanel.cs" />
+    <Compile Include="MrisForm.aspx.cs">
+      <DependentUpon>MrisForm.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="MrisForm.aspx.designer.cs">
+      <DependentUpon>MrisForm.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="testbind.aspx.cs">
+      <DependentUpon>testbind.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="testbind.aspx.designer.cs">
+      <DependentUpon>testbind.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Vagon.aspx.cs">
+      <DependentUpon>Vagon.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Vagon.aspx.designer.cs">
+      <DependentUpon>Vagon.aspx</DependentUpon>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Kesco.Lib.BaseExtention\Kesco.Lib.BaseExtention.csproj">
       <Project>{D26C8D93-C51B-4F61-ADA8-8527A18E4C41}</Project>
       <Name>Kesco.Lib.BaseExtention</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Kesco.Lib.Convert\Kesco.Lib.ConvertExtention.csproj">
+      <Project>{9C6AB086-FDB5-4FBC-B358-092C47F6B4F4}</Project>
+      <Name>Kesco.Lib.ConvertExtention</Name>
     </ProjectReference>
     <ProjectReference Include="..\Kesco.Lib.DALC\Kesco.Lib.DALC.csproj">
       <Project>{5F647577-BC44-41DE-AFBE-BC47C91548F1}</Project>
@@ -86,6 +142,18 @@
     <ProjectReference Include="..\Kesco.Lib.Entities\Kesco.Lib.Entities.csproj">
       <Project>{DEAA04C2-AFB2-4AD0-B161-A5BF6C26A9DB}</Project>
       <Name>Kesco.Lib.Entities</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Kesco.Lib.Localization\Kesco.Lib.Localization.csproj">
+      <Project>{895BE7DB-796B-40DD-B338-01B9C53F8308}</Project>
+      <Name>Kesco.Lib.Localization</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Kesco.Lib.Log\Kesco.Lib.Log.csproj">
+      <Project>{FC924B22-160A-4F7F-98EB-63E420DE694E}</Project>
+      <Name>Kesco.Lib.Log</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Kesco.Lib.Web.Comet\Kesco.Lib.Web.Comet\Kesco.Lib.Web.Comet.csproj">
+      <Project>{EB32DBFE-59E0-4F6C-A718-BE9BA708C64F}</Project>
+      <Name>Kesco.Lib.Web.Comet</Name>
     </ProjectReference>
     <ProjectReference Include="..\Kesco.Lib.Web.Controls.V4\Kesco.Lib.Web.Controls.V4.csproj">
       <Project>{C24FDAB8-D076-4F0C-8932-DB8160E4C4EF}</Project>

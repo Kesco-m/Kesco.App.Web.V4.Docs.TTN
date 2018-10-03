@@ -1,4 +1,9 @@
-﻿/*Вставка вертикального отступа*/
+﻿iframe {
+    background-color: transparent;
+    border: none;
+}
+
+/*Вставка вертикального отступа*/
 .spacer
 {
     display:block;
@@ -8,9 +13,27 @@
 /*Блок включающий в себя метку и элемент управления, который может размещаться на одной линии с другими блоками*/
 div.inline_predicate_block
 {
-    min-height: 30px;
+    min-height: 20px;
     display: block;
-    margin-top:5px;
+    /*margin-top:5px;*/
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/*Блок включающий в себя метку и элемент управления, который может размещаться на одной линии с другими блоками с отступом*/
+div.inline_predicate_block_left
+{
+    min-height: 15px;
+    display: block;
+    margin-left:45px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/*Блок включающий в себя метку и элемент управления, который может размещаться на одной линии с другими блоками с отступом*/
+div.inline_predicate_block_text
+{
+    display: block;
     display: inline-block;
     vertical-align: middle;
 }
@@ -18,7 +41,7 @@ div.inline_predicate_block
 /*Блок включающий в себя метку и элемент управления или другие блоки, который размещается на линии один*/
 div.predicate_block
 {
-    min-height: 30px;
+    min-height: 20px;
     display: block;
     margin-top:5px;
 }
@@ -34,7 +57,7 @@ div.area_block
 /*Метка которая размещается на одной линии с элементом управления есть место*/
 div.label
 {
-    width: 120px;
+    width: 150px;
     display: inline-block;
     vertical-align: middle;
 }
@@ -64,3 +87,43 @@ center
 {
     color:#3399FF;
 }
+
+/*Класс определят отступ слева*/
+.marginL 
+{
+     margin-left: 25px;
+}
+
+.marginA
+{
+     margin-left: 20px;
+     margin-right: 20px;
+}
+
+/*стили для отображения статусной строки*/
+.footer {
+    width:100%;
+    position:absolute;
+    bottom:5px;
+    left:0;
+    font-size: 7pt;
+    margin-top: 7px;
+}
+
+.itogtable {
+    border: 1px solid #c5c5c5;
+    text-wrap: none;
+    background-color: white;
+    text-align: right;
+    border-collapse: collapse;
+    padding: 1;
+    border-spacing: 1;
+}
+
+.ui-state-disabled-invisible{
+	cursor: default !important;
+	opacity: .99;
+	filter:Alpha(Opacity=99); /* support: IE8 */
+	background-image: none;
+}
+
