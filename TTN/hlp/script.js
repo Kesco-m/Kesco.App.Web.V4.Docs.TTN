@@ -1,4 +1,4 @@
-function SetDefaultPage()
+п»їfunction SetDefaultPage()
 {
 	if (parent == null) return;
 
@@ -32,7 +32,7 @@ function OpenPageInHelp(pageId, anchor)
 {
 	if (!parent || !parent.index || !parent.index.document.all(pageId))
 	{
-		alert("Ссылка на страницу с id='"  + pageId + "' не найдена или у документа неверная структура!");
+		alert("РЎСЃС‹Р»РєР° РЅР° СЃС‚СЂР°РЅРёС†Сѓ СЃ id='"  + pageId + "' РЅРµ РЅР°Р№РґРµРЅР° РёР»Рё Сѓ РґРѕРєСѓРјРµРЅС‚Р° РЅРµРІРµСЂРЅР°СЏ СЃС‚СЂСѓРєС‚СѓСЂР°!");
 		return;
 	}
 

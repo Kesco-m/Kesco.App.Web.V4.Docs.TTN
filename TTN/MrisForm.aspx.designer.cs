@@ -13,22 +13,22 @@ namespace Kesco.App.Web.Docs.TTN {
     public partial class MrisForm {
         
         /// <summary>
-        /// efShipperStore элемент управления.
+        /// efStoreShipper элемент управления.
         /// </summary>
         /// <remarks>
         /// Автоматически создаваемое поле.
         /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
         /// </remarks>
-        protected global::Kesco.Lib.Web.DBSelect.V4.DBSStore efShipperStore;
+        protected global::Kesco.Lib.Web.DBSelect.V4.DBSStore efStoreShipper;
         
         /// <summary>
-        /// efPayerStore элемент управления.
+        /// efStorePayer элемент управления.
         /// </summary>
         /// <remarks>
         /// Автоматически создаваемое поле.
         /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
         /// </remarks>
-        protected global::Kesco.Lib.Web.DBSelect.V4.DBSStore efPayerStore;
+        protected global::Kesco.Lib.Web.DBSelect.V4.DBSStore efStorePayer;
         
         /// <summary>
         /// efResource элемент управления.
@@ -91,7 +91,7 @@ namespace Kesco.App.Web.Docs.TTN {
         /// Автоматически создаваемое поле.
         /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
         /// </remarks>
-        protected global::Kesco.Lib.Web.Controls.V4.Number efMCoef;
+        protected global::Kesco.Lib.Web.Controls.V4.Div efMCoef;
         
         /// <summary>
         /// efOsnUnit элемент управления.
@@ -121,78 +121,6 @@ namespace Kesco.App.Web.Docs.TTN {
         protected global::Kesco.Lib.Web.DBSelect.V4.DBSDocument efGTD;
         
         /// <summary>
-        /// efRestType элемент управления.
-        /// </summary>
-        /// <remarks>
-        /// Автоматически создаваемое поле.
-        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
-        /// </remarks>
-        protected global::Kesco.Lib.Web.Controls.V4.ComboBox efRestType;
-        
-        /// <summary>
-        /// efResourceChild элемент управления.
-        /// </summary>
-        /// <remarks>
-        /// Автоматически создаваемое поле.
-        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
-        /// </remarks>
-        protected global::Kesco.Lib.Web.Controls.V4.CheckBox efResourceChild;
-        
-        /// <summary>
-        /// efDateDocB элемент управления.
-        /// </summary>
-        /// <remarks>
-        /// Автоматически создаваемое поле.
-        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
-        /// </remarks>
-        protected global::Kesco.Lib.Web.Controls.V4.DatePicker efDateDocB;
-        
-        /// <summary>
-        /// efBDOst элемент управления.
-        /// </summary>
-        /// <remarks>
-        /// Автоматически создаваемое поле.
-        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
-        /// </remarks>
-        protected global::Kesco.Lib.Web.Controls.V4.Number efBDOst;
-        
-        /// <summary>
-        /// efBDUnit элемент управления.
-        /// </summary>
-        /// <remarks>
-        /// Автоматически создаваемое поле.
-        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
-        /// </remarks>
-        protected global::Kesco.Lib.Web.Controls.V4.Div efBDUnit;
-        
-        /// <summary>
-        /// DateDocE элемент управления.
-        /// </summary>
-        /// <remarks>
-        /// Автоматически создаваемое поле.
-        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
-        /// </remarks>
-        protected global::Kesco.Lib.Web.Controls.V4.DatePicker DateDocE;
-        
-        /// <summary>
-        /// efEDOst элемент управления.
-        /// </summary>
-        /// <remarks>
-        /// Автоматически создаваемое поле.
-        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
-        /// </remarks>
-        protected global::Kesco.Lib.Web.Controls.V4.Number efEDOst;
-        
-        /// <summary>
-        /// efEDUnit элемент управления.
-        /// </summary>
-        /// <remarks>
-        /// Автоматически создаваемое поле.
-        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
-        /// </remarks>
-        protected global::Kesco.Lib.Web.Controls.V4.Div efEDUnit;
-        
-        /// <summary>
         /// efCount элемент управления.
         /// </summary>
         /// <remarks>
@@ -218,6 +146,15 @@ namespace Kesco.App.Web.Docs.TTN {
         /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
         /// </remarks>
         protected global::Kesco.Lib.Web.Controls.V4.Div efGross;
+        
+        /// <summary>
+        /// btnRest элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.Button btnRest;
         
         /// <summary>
         /// efCostOutNDS элемент управления.
@@ -290,5 +227,77 @@ namespace Kesco.App.Web.Docs.TTN {
         /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
         /// </remarks>
         protected global::Kesco.Lib.Web.Controls.V4.Changed efChanged;
+        
+        /// <summary>
+        /// efRestType элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.ComboBox efRestType;
+        
+        /// <summary>
+        /// efResourceChild элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.CheckBox efResourceChild;
+        
+        /// <summary>
+        /// efDateDocB элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.DatePicker efDateDocB;
+        
+        /// <summary>
+        /// efBDOst элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.Div efBDOst;
+        
+        /// <summary>
+        /// efBDUnit элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.Div efBDUnit;
+        
+        /// <summary>
+        /// DateDocE элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.DatePicker DateDocE;
+        
+        /// <summary>
+        /// efEDOst элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.Div efEDOst;
+        
+        /// <summary>
+        /// efEDUnit элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.Div efEDUnit;
     }
 }

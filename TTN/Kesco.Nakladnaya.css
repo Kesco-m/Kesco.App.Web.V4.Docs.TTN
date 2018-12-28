@@ -62,6 +62,22 @@ div.label
     vertical-align: middle;
 }
 
+div.label_100
+{
+    width: 100px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/*Метка которая размещается на одной линии с элементом управления есть место*/
+div.label170
+{
+    width: 170px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+
 /*Запрещенный элемент имеет серую метку*/
 div.disabled_label
 {
@@ -71,9 +87,8 @@ div.disabled_label
 /*Класс используется для вертикального выравнивания элементов типа DBSelect*/
 div.aligned_control
 {
-    width: 226px;
     vertical-align: middle;
-    margin-right:20px;
+    margin-right:10px;
 }
 
 /*Класс используется для горизонтального центрирования элементов в пределах заданной ширины*/
@@ -87,11 +102,20 @@ center
 {
     color:#3399FF;
 }
+.required_red_info
+{
+    color:red;
+}
 
 /*Класс определят отступ слева*/
 .marginL 
 {
-     margin-left: 25px;
+     margin-left: 10px;
+}
+
+.marginD 
+{
+     margin-left: 3px;
 }
 
 .marginA
@@ -116,8 +140,8 @@ center
     background-color: white;
     text-align: right;
     border-collapse: collapse;
-    padding: 1;
-    border-spacing: 1;
+    padding: 1px;
+    border-spacing: 1px;
 }
 
 .ui-state-disabled-invisible{
@@ -127,3 +151,10 @@ center
 	background-image: none;
 }
 
+.warning {
+    color: red;
+    width: 100%;
+    text-align: left;
+}
+
+div#CorrectingSequel, div#CorrectingSequel a { color:red; }

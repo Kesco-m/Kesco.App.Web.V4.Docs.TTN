@@ -40,6 +40,15 @@ namespace Kesco.App.Web.Docs.TTN {
         protected global::Kesco.Lib.Web.Controls.V4.TextBox efResourceLat;
         
         /// <summary>
+        /// Agent1Panel элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl Agent1Panel;
+        
+        /// <summary>
         /// chAgent1 элемент управления.
         /// </summary>
         /// <remarks>
@@ -56,6 +65,15 @@ namespace Kesco.App.Web.Docs.TTN {
         /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
         /// </remarks>
         protected global::Kesco.Lib.Web.Controls.V4.Div efAgent1;
+        
+        /// <summary>
+        /// Agent2Panel элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl Agent2Panel;
         
         /// <summary>
         /// chAgent2 элемент управления.
@@ -199,7 +217,7 @@ namespace Kesco.App.Web.Docs.TTN {
         /// Автоматически создаваемое поле.
         /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
         /// </remarks>
-        protected global::Kesco.Lib.Web.Controls.V4.Div efCurrency;
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl efCurrency;
         
         /// <summary>
         /// efChanged элемент управления.

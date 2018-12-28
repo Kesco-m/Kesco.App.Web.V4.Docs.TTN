@@ -30,11 +30,5 @@ namespace Kesco.App.Web.Docs.TTN
 			p.JS.Write("Nakladnaya.setCorrectableMode({0});", fCorrectable ? "true" : "false");
 		}
 
-		//Метод используется для запроса подтверждения пользователя
-		//на замену значений полей документа значениями из корректируемого документа
-		public static void setCorrectableDocument(Kesco.Lib.Web.Controls.V4.Common.Page p)
-		{
-			p.JS.Write("Nakladnaya.setCorrectableDocument();");
-		}
 	}
 }

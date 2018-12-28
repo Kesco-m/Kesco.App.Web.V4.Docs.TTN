@@ -1,27 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Collections.Specialized;
-using System.Data;
-using System.Linq;
-using System.Web;
 using Kesco.Lib.BaseExtention.Enums.Controls;
-using Kesco.Lib.BaseExtention.Enums.Docs;
 using Kesco.Lib.DALC;
-using Kesco.Lib.Entities;
 using Kesco.Lib.Entities.Documents;
-using Kesco.Lib.Entities.Documents.EF;
-using Kesco.Lib.Entities.Documents.EF.Dogovora;
-using Kesco.Lib.Entities.Persons;
-using Kesco.Lib.Entities.Persons.PersonOld;
-using Kesco.Lib.Entities.Stores;
 using Kesco.Lib.Web.Controls.V4;
 using Kesco.Lib.Web.Controls.V4.Common;
 using Kesco.Lib.Entities.Resources;
-using Kesco.Lib.Entities.Documents.EF.Trade;
 using Kesco.Lib.Log;
-using Kesco.Lib.Web.Settings;
 
 namespace Kesco.App.Web.Docs.TTN
 {
@@ -37,6 +24,14 @@ namespace Kesco.App.Web.Docs.TTN
         /// Вызывающая страница (накладная)
         /// </summary>
         protected Nakladnaya ParentPage;
+
+        /// <summary>
+        ///     ТТН
+        /// </summary>
+        private Lib.Entities.Documents.EF.Trade.TTN Document
+        {
+            get { return (ParentPage).Document; }
+        }
 
         #endregion
 
@@ -166,11 +161,29 @@ namespace Kesco.App.Web.Docs.TTN
         private void SaveData()
         {
             #region Проверка идентичности ГО/ГП, транспортных узлов в выбранных отправках
-            if (ParentPage.CheckIdentity(resultGuid))
+
+            var info = string.Empty;
+            if (ParentPage.CheckIdentity(resultGuid, out info))
             {
                 var stavkaNDS = new StavkaNDS(efNDS.Value);
+
+                var reloadParentForm = false;
+                if (idDoc == "0")
+                {
+                    List<DBCommand> cmds = null;
+                    Document.Save(false, cmds);
+                    idDoc = Document.DocId.ToString();
+                    reloadParentForm = true;
+                }
+
+
                 ParentPage.Document.FillPositionsByGuid(new Guid(resultGuid), int.Parse(efNDS.Value), Lib.ConvertExtention.Convert.Str2Decimal(efCost.Value), (decimal)stavkaNDS.Величина, efShipperStore.Value, efPayerStore.Value);
-                JS.Write("parent.vagon_Records_Save();");
+
+                JS.Write("parent.vagon_Records_Save('{0}');", reloadParentForm);
+            }
+            else
+            {
+                if (info != string.Empty) ShowMessage(info, Resx.GetString("errPrinting"), MessageStatus.Error);
             }
             #endregion
         }

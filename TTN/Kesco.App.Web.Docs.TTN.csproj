@@ -51,30 +51,19 @@
     <Reference Include="System.EnterpriseServices" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="DistribDocPage.aspx" />
     <Content Include="FactUslForm.aspx" />
     <Content Include="Global.asax" />
-    <Content Include="hlp\mris\Contents\default.htm" />
-    <Content Include="hlp\mris\default.htm" />
-    <Content Include="hlp\mris\help.htm" />
-    <Content Include="hlp\mris\index.htm" />
-    <Content Include="hlp\mris\script.js" />
-    <Content Include="hlp\mris\style.css" />
-    <Content Include="hlp\factusl\Contents\default.htm" />
-    <Content Include="hlp\factusl\default.htm" />
-    <Content Include="hlp\factusl\help.htm" />
-    <Content Include="hlp\factusl\index.htm" />
-    <Content Include="hlp\factusl\script.js" />
-    <Content Include="hlp\factusl\style.css" />
-    <Content Include="hlp\nakladnaya\Contents\default.htm" />
-    <Content Include="hlp\nakladnaya\default.htm" />
-    <Content Include="hlp\nakladnaya\help.htm" />
-    <Content Include="hlp\nakladnaya\index.htm" />
-    <Content Include="hlp\nakladnaya\script.js" />
-    <Content Include="hlp\nakladnaya\style.css" />
+    <Content Include="hlp\Contents\default.htm" />
+    <Content Include="hlp\default.htm" />
+    <Content Include="hlp\help.htm" />
+    <Content Include="hlp\index.htm" />
+    <Content Include="hlp\script.js" />
+    <Content Include="hlp\style.css" />
     <Content Include="Kesco.Mris.js" />
     <Content Include="Nakladnaya.aspx" />
-    <Content Include="Nakladnaya.css" />
-    <Content Include="Nakladnaya.js" />
+    <Content Include="Kesco.Nakladnaya.css" />
+    <Content Include="Kesco.Nakladnaya.js" />
     <Content Include="MrisForm.aspx" />
     <Content Include="testbind.aspx" />
     <Content Include="Vagon.aspx" />
@@ -82,9 +71,17 @@
       <SubType>Designer</SubType>
     </Content>
     <Content Include="Kesco.FactUsl.js" />
+    <Content Include="Kesco.Distrib.js" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ClientScripts.cs" />
+    <Compile Include="DistribDocPage.aspx.cs">
+      <DependentUpon>DistribDocPage.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="DistribDocPage.aspx.designer.cs">
+      <DependentUpon>DistribDocPage.aspx</DependentUpon>
+    </Compile>
     <Compile Include="FactUslForm.aspx.cs">
       <DependentUpon>FactUslForm.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>

@@ -11,23 +11,5 @@ namespace TTN {
     
     
     public partial class testbind {
-        
-        /// <summary>
-        /// efResource элемент управления.
-        /// </summary>
-        /// <remarks>
-        /// Автоматически создаваемое поле.
-        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
-        /// </remarks>
-        protected global::Kesco.Lib.Web.DBSelect.V4.DBSResource efResource;
-        
-        /// <summary>
-        /// btn элемент управления.
-        /// </summary>
-        /// <remarks>
-        /// Автоматически создаваемое поле.
-        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
-        /// </remarks>
-        protected global::Kesco.Lib.Web.Controls.V4.Button btn;
     }
 }

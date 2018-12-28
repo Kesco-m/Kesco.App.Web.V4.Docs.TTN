@@ -1,24 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Collections.Specialized;
 using System.Diagnostics;
+using System.Diagnostics.Eventing.Reader;
+using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Web;
+using Kesco.Lib.BaseExtention;
 using Kesco.Lib.BaseExtention.Enums.Controls;
 using Kesco.Lib.BaseExtention.Enums.Docs;
+using Kesco.Lib.DALC;
 using Kesco.Lib.Entities.Documents;
 using Kesco.Lib.Entities.Documents.EF;
 using Kesco.Lib.Entities.Documents.EF.Dogovora;
+using Kesco.Lib.Entities.Documents.EF.Trade;
 using Kesco.Lib.Entities.Persons;
 using Kesco.Lib.Entities.Persons.PersonOld;
+using Kesco.Lib.Entities.Resources;
 using Kesco.Lib.Entities.Stores;
+using Kesco.Lib.Log;
 using Kesco.Lib.Web.Controls.V4;
 using Kesco.Lib.Web.Controls.V4.Common;
-using Kesco.Lib.Entities.Resources;
-using Kesco.Lib.Entities.Documents.EF.Trade;
-using Kesco.Lib.Log;
+using Kesco.Lib.Web.Controls.V4.Common.DocumentPage;
+using Convert = Kesco.Lib.ConvertExtention.Convert;
 
 namespace Kesco.App.Web.Docs.TTN
 {
@@ -27,6 +33,448 @@ namespace Kesco.App.Web.Docs.TTN
     /// </summary>
     public partial class MrisForm : EntityPage
     {
+        /// <summary>
+        ///     Конструктор по умолчанию
+        /// </summary>
+        public MrisForm()
+        {
+            HelpUrl = "hlp/help.htm?id=2";
+        }
+
+        /// <summary>
+        ///     Задание ссылки на справку
+        /// </summary>
+        protected override string HelpUrl { get; set; }
+
+        /// <summary>
+        ///     Событие загрузки страницы
+        /// </summary>
+        /// <param name="sender">Объект страницы</param>
+        /// <param name="e">Аргументы</param>
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            if (!V4IsPostBack)
+            {
+                BindField();
+                if (mris.Id.IsNullEmptyOrZero())
+                {
+                    V4SetFocus(efStoreShipper.Value.IsNullEmptyOrZero() ? "efStoreShipper" : 
+                        efStorePayer.Value.IsNullEmptyOrZero() ? "efStorePayer" : "efResource");
+                }
+                else
+                {
+                    V4SetFocus("efStoreShipper");
+                }
+            }
+
+            efGTD.Filter.Type.Add(new DocTypeParam
+            {
+                DocTypeEnum = DocTypeEnum.ТаможеннаяДекларация,
+                QueryType = DocTypeQueryType.Equals
+            });
+            efCountry.Filter.TerritoryCode.Add("2");
+
+            efStoreShipper.IsRequired = ((Nakladnaya) ParentPage).ShipperStoreField.IsRequired;
+            efStorePayer.IsRequired = ((Nakladnaya) ParentPage).PayerStoreField.IsRequired;
+
+            efStoreShipper.BeforeSearch += StoreShipper_BeforeSearch;
+            efStorePayer.BeforeSearch += StorePayer_BeforeSearch;
+            efResource.BeforeSearch += Resource_BeforeSearch;
+            efUnitAdv.BeforeSearch += UnitAdv_BeforeSearch;
+            efStavkaNDS.BeforeSearch += StavkaNDS_BeforeSearch;
+
+            efStoreShipper.OnRenderNtf += StoreShipper_OnRenderNtf;
+            efStorePayer.OnRenderNtf += StorePayer_OnRenderNtf;
+            efResource.OnRenderNtf += Resource_OnRenderNtf;
+            efResourceRus.OnRenderNtf += ResourceRus_OnRenderNtf;
+            efResourceLat.OnRenderNtf += ResourceLat_OnRenderNtf;
+            efGTD.OnRenderNtf += GTD_OnRenderNtf;
+
+            efCount.PreRender += Count_PreRender;
+            efCurrency.PreRender += Currency_PreRender;
+            efBDOst.PreRender += BDOst_PreRender;
+            efEDOst.PreRender += EDOst_PreRender;
+
+            efCostOutNDS.PreRender += CostOutNDS_PreRender;
+            efSummaOutNDS.PreRender += SummaOutNDS_PreRender;
+            efSummaNDS.PreRender += SummaNDS_PreRender;
+            efVsego.PreRender += Vsego_PreRender;
+            efAktsiz.PreRender += Aktsiz_PreRender;
+
+            DocumentReadOnly = !((DocPage)ParentPage).DocEditable;
+            JS.Write("ShowControl('trUnitAdv','{0}')", DocumentReadOnly);
+        }
+
+        #region InitControls
+
+        /// <summary>
+        ///     Инициализация контролов
+        /// </summary>
+        private void SetInitValue()
+        {
+            btnRest.Text = Resx.GetString("TTN_lblCheckRest");
+
+            efRestType.Items.Add("", Resx.GetString("TTN_optTransactionBalance"));
+            efRestType.Items.Add("1", Resx.GetString("TTN_optBalanceCompletedDocuments"));
+            efRestType.Items.Add("0", Resx.GetString("TTN_optBalanceSignedDocuments"));
+
+            efDateDocB.Value = DateDocE.Value = Document.Date.ToShortDateString();
+
+            efCount.Precision = mris.ResourceId > 0
+                ? mris.Resource.GetScale4Unit(mris.UnitId.ToString(), 3, Document.PlatelschikField.Value.ToString())
+                : 3;
+            
+            efCostOutNDS.Precision =
+                efSummaOutNDS.Precision =
+                    efSummaNDS.Precision =
+                        efAktsiz.Precision =
+                            efVsego.Precision = Scale;
+        }
+
+        #endregion
+
+        #region Render
+
+        /// <summary>
+        ///     Подготовка данных для отрисовки заголовка страницы(панели с кнопками)
+        /// </summary>
+        /// <returns></returns>
+        protected string RenderDocumentHeader()
+        {
+            using (var w = new StringWriter())
+            {
+                try
+                {
+                    ClearMenuButtons();
+                    SetMenuButtons();
+                    RenderButtons(w);
+                }
+                catch (Exception e)
+                {
+                    var dex = new DetailedException(Resx.GetString("TTN_errFailedGenerateButtons") + ": " + e.Message, e);
+                    Logger.WriteEx(dex);
+                    throw dex;
+                }
+
+                return w.ToString();
+            }
+        }
+
+        protected string DivHeaderClass()
+        {
+            if (DocumentReadOnly) return "label";
+            return "";
+        }
+        #endregion
+
+        #region Validation
+
+        /// <summary>
+        ///     Валидация контролов
+        /// </summary>
+        /// <returns></returns>
+        private bool Validation()
+        {
+            var title = Resx.GetString("TTN_msgDocumentCanNotBeSaved");
+
+            if (efStoreShipper.IsRequired && (mris.ShipperStoreId == null || mris.ShipperStoreId == 0))
+            {
+                // Не заполнено поле 'склад поставщика'
+                ShowMessage(Resx.GetString("TTN_ntfNotShipperStore"), title);
+                efStoreShipper.Focus();
+                return false;
+            }
+
+            if (efStorePayer.IsRequired && (mris.PayerStoreId == null || mris.PayerStoreId == 0))
+            {
+                // Не заполнено поле 'склад плательщика' 
+                ShowMessage(Resx.GetString("TTN_ntfNotPayerStore"), title);
+                efStorePayer.Focus();
+                return false;
+            }
+
+            if (mris.ResourceId == 0)
+            {
+                // Не заполнено поле 'продукт'
+                ShowMessage(Resx.GetString("TTN_ntfNotProduct"), title);
+                efResource.Focus();
+                return false;
+            }
+
+            if (mris.ResourceRus.Length == 0)
+            {
+                // Не заполнено поле 'русское название продукта'
+                ShowMessage(Resx.GetString("TTN_ntfNotResourceRus"), title);
+                efResourceRus.Focus();
+                return false;
+            }
+
+            if (mris.Count == 0)
+            {
+                // Не заполнено поле 'Количество'
+                ShowMessage(Resx.GetString("TTN_ntfNotCount"), title);
+                efCount.Focus();
+                return false;
+            }
+
+            if (mris.UnitId == null || mris.UnitId == 0)
+            {
+                // Не заполнено поле 'Единица измерения'
+                ShowMessage(Resx.GetString("TTN_ntfNotUnit"), title);
+                efUnitAdv.Focus();
+                return false;
+            }
+
+            if (mris.CostOutNDS.ToString(CultureInfo.InvariantCulture).Length == 0)
+            {
+                // Не заполнено поле 'Цена без НДС'
+                ShowMessage(Resx.GetString("TTN_ntfNotCostOutNDS"), title);
+                efCostOutNDS.Focus();
+                return false;
+            }
+
+            if (mris.CostOutNDS == 0)
+            {
+                // Цена без НДС должна быть больше или меньше 0
+                ShowMessage(Resx.GetString("TTN_ntfCostOutNDSIncorrect"), title);
+                efCostOutNDS.Focus();
+                return false;
+            }
+
+            if (mris.StavkaNDSId == null)
+            {
+                // Не заполнено поле 'Cтавка НДС'
+                ShowMessage(Resx.GetString("TTN_ntfNotStavkaNDS"), title);
+                efStavkaNDS.Focus();
+                return false;
+            }
+
+            if (mris.SummaOutNDS.ToString(CultureInfo.InvariantCulture).Length == 0)
+            {
+                // Не заполнено поле 'Сумма без НДС'
+                ShowMessage(Resx.GetString("TTN_ntfNotSummaOutNDS"), title);
+                efSummaOutNDS.Focus();
+                return false;
+            }
+
+            if (mris.SummaOutNDS == 0)
+            {
+                // Сумма без НДС должна быть больше или меньше 0
+                ShowMessage(Resx.GetString("TTN_ntfSummaOutNDSIncorrect"), title);
+                efSummaOutNDS.Focus();
+                return false;
+            }
+
+            if (mris.Vsego.ToString(CultureInfo.InvariantCulture).Length == 0)
+            {
+                // Не заполнено поле 'Всего'
+                ShowMessage(Resx.GetString("TTN_ntfNotVsego"), title);
+                efVsego.Focus();
+                return false;
+            }
+
+            if (mris.Vsego == 0)
+            {
+                // Значение поля 'Всего' должно быть больше или меньше 0
+                ShowMessage(Resx.GetString("TTN_ntfVsegoIncorrect"), title);
+                efVsego.Focus();
+                return false;
+            }
+
+            if (mris.CountryId > 0 && !mris.CountryId.Equals(RegionRussia) && mris.GTDId == 0)
+            {
+                // Необходимо указать таможенную декларацию
+                ShowMessage(Resx.GetString("TTN_ntfNotGTD"), title);
+                efGTD.Focus();
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        ///     Валидация при открытии остатков
+        /// </summary>
+        /// <returns></returns>
+        private bool RestValidation()
+        {
+            var title = Resx.GetString("TTN_msgDocumentCanNotBeSaved");
+
+            if (mris.ShipperStoreId == null || mris.ShipperStoreId == 0)
+            {
+                // Не заполнено поле 'склад поставщика'
+                ShowMessage(Resx.GetString("TTN_ntfNotShipperStore"), title);
+                efStoreShipper.Focus();
+                return false;
+            }
+
+            if (mris.ResourceId == 0)
+            {
+                // Не заполнено поле 'продукт'
+                ShowMessage(Resx.GetString("TTN_ntfNotProduct"), title);
+                efResource.Focus();
+                return false;
+            }
+
+            if (mris.UnitId == null || mris.UnitId == 0)
+            {
+                // Не заполнено поле 'Единица измерения'
+                ShowMessage(Resx.GetString("TTN_ntfNotUnit"), title);
+                efUnitAdv.Focus();
+                return false;
+            }
+
+            return true;
+        }
+
+        #endregion
+
+        /// <summary>
+        ///     Заполнение ставки НДС из накладной
+        /// </summary>
+        /// <param name="res">Ресурс</param>
+        private void FillSpecNDSByParentResource(Resource res)
+        {
+            if (res != null && Document.PostavschikDataField.Value.ToString().Length > 0)
+            {
+                //var shipper = new Person(ParentPage.ShipperField.Value);
+                var shipper = ParentPage.GetObjectById(typeof(PersonOld), Document.GOPersonField.Value.ToString()) as PersonOld;
+                if (shipper != null && shipper.RegionID.Equals(RegionRussia))
+                {
+                    mris.StavkaNDSId = res.NDS.Equals("1") ? 4 : 3;
+                    efStavkaNDS.Value = mris.StavkaNDSId.ToString();
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Отображает диалоговое окно выбора вида расчета
+        /// </summary>
+        /// <param name="name">Название изменяемого поля</param>
+        /// <param name="value">Новое значение изменяемого поля</param>
+        /// <param name="ndx">Индекс</param>
+        private void DialogCostRecalc(string name, string value, string ndx)
+        {
+            ShowConfirm(Resx.GetString("TTN_msgNDSSUM"), Resx.GetString("TTN_msgChoiceCalculationType"),
+                Resx.GetString("QSBtnYes"), Resx.GetString("QSBtnNo")
+                , "dialogRecalc('DialogCostRecalc_Yes','" + name + "','" + value + "','" + ndx + "');"
+                , "dialogRecalc('DialogCostRecalc_No','" + name + "','" + value + "','" + ndx + "');"
+                , null, null);
+        }
+
+        /// <summary>
+        ///     Отображает диалоговое окно выбора типа перерасчета
+        /// </summary>
+        /// <param name="name">Название изменяемого поля</param>
+        /// <param name="value">Новое значение изменяемого поля</param>
+        /// <param name="ndx">Индекс</param>
+        private void DialogRecalc(string name, string value, string ndx)
+        {
+            var helpText = string.Format(@"
+            Нажмите:<br>
+					<b>{0}</b> - {1};
+					<b>{2}</b> - {3};
+					<b>{4}</b> - {5};
+					<b>{6}</b> - {7}",
+                "OK",
+                Resx.GetString("TTN_msgOKInfo"),
+                Resx.GetString("QSBtnRecalc"),
+                Resx.GetString("TTN_msgRecalcInfo"),
+                Resx.GetString("QSBtnCancel"),
+                Resx.GetString("TTN_msgCancel"),
+                Resx.GetString("QSBtnChange"),
+                Resx.GetString("TTN_msgChange")
+                );
+
+            ShowRecalc(helpText, Resx.GetString("TTN_msgOKInfo"), "ОК", Resx.GetString("QSBtnRecalc"),
+                Resx.GetString("QSBtnCancel"), Resx.GetString("QSBtnChange")
+                , "dialogRecalc('DialogRecalc_Yes','" + name + "','" + value + "','" + ndx + "');"
+                , "dialogRecalc('DialogRecalc_Recalc','" + name + "','" + value + "','" + ndx + "');"
+                , "dialogRecalc('DialogRecalc_No','" + name + "','" + value + "','" + ndx + "');"
+                , "dialogRecalc('DialogRecalc_Change','" + name + "','" + value + "','" + ndx + "');"
+                , null, 500);
+        }
+
+        /// <summary>
+        ///     Обработка клиентских команд
+        /// </summary>
+        /// <param name="cmd">Команды</param>
+        /// <param name="param">Параметры</param>
+        protected override void ProcessCommand(string cmd, NameValueCollection param)
+        {
+            switch (cmd)
+            {
+                case "RefreshData":
+                    JS.Write("$('#btnRefresh').attr('disabled', 'disabled');Wait.render(true);");
+                    JS.Write("setTimeout(function(){{$('#btnRefresh').removeAttr('disabled'); Wait.render(false);}}, 2000);");
+                    RefreshData();
+                    break;
+                case "SaveMris":
+                    SaveData();
+                    break;
+                case "DeleteData":
+                    DeleteData();
+                    break;
+                case "DialogCostRecalc_Yes":
+                    var d_kol = (mris.Count > 0 && !mris.Count.Equals("0")) ? mris.Count : 1;
+
+                    var _costOutNDS = mris.CostOutNDS;
+                    decimal _summaOutNDS = 0;
+                    decimal _summaNDS = 0;
+                    decimal _vsego = 0;
+                    var stavka = mris.StavkaNDS;
+                    var prst = (decimal) stavka.Величина*100;
+                    var scale = Document != null && !Document.Unavailable ? Document.CurrencyScale : 2;
+
+                    _vsego = Convert.Round((decimal) (d_kol*(double) _costOutNDS), scale);
+                    _summaNDS = Convert.Round(_vsego/(100 + prst)*prst, scale);
+                    _summaOutNDS = _vsego - _summaNDS;
+                    _costOutNDS = Convert.Round((decimal) ((double) _summaOutNDS/d_kol), scale*2);
+
+                    var maxscale = mris.Resource.GetScale4Unit(mris.UnitId.ToString(), 3, Document.PlatelschikField.Value.ToString());
+                    mris.Count = d_kol;
+                    efCount.Value = Convert.Decimal2Str((decimal) mris.Count, maxscale);
+
+                    mris.CostOutNDS = _costOutNDS;
+                    efCostOutNDS.Value = Convert.Decimal2Str(mris.CostOutNDS, scale*2);
+                    mris.SummaOutNDS = Convert.Round(_summaOutNDS, scale);
+                    efSummaOutNDS.Value = Convert.Decimal2Str(mris.SummaOutNDS, scale);
+                    mris.SummaNDS = Convert.Round(_summaNDS, scale);
+                    efSummaNDS.Value = Convert.Decimal2Str(mris.SummaNDS, scale);
+                    mris.Vsego = Convert.Round(_vsego, scale);
+                    efVsego.Value = Convert.Decimal2Str(mris.Vsego, scale);
+                    break;
+                case "DialogCostRecalc_No":
+                    ShowCalcMessage(mris.Recalc(param["value"], param["ndx"], param["name"], "0", Scale));
+                    break;
+                case "DialogRecalc_Yes":
+                    ShowCalcMessage(mris.Recalc(param["value"], param["ndx"], param["name"], "0", Scale));
+                    break;
+                case "DialogRecalc_Recalc":
+                    ShowCalcMessage(mris.Recalc(param["value"], param["ndx"], param["name"], "1", Scale));
+                    break;
+                case "DialogRecalc_No":
+                    ShowCalcMessage(mris.Recalc(param["value"], param["ndx"], param["name"], "2", Scale));
+                    break;
+                case "DialogRecalc_Change":
+                    ShowCalcMessage(mris.Recalc(param["value"], param["ndx"], param["name"], "3", Scale));
+                    break;
+                case "CheckRest":
+                    if (RestValidation())
+                    {
+                        GetOstatok();
+                        JS.Write("rest_DialogShow('{0}');", Resx.GetString("TTN_lblRest"));
+                    }
+                    break;
+
+            }
+        }
+
+        private void ShowCalcMessage(string message)
+        {
+            if (!message.IsNullEmptyOrZero()) ShowMessage(Resx.GetString(message), Resx.GetString("errDoisserWarrning"));   
+        }
+
         #region declaration, property, field
 
         protected Mris mris;
@@ -36,34 +484,32 @@ namespace Kesco.App.Web.Docs.TTN
 
         // регион - рф
         public const int RegionRussia = 188;
-
+    
         /// <summary>
-        /// Вызывающая страница (накладная)
-        /// </summary>
-        protected Nakladnaya ParentPage;
-
-        /// <summary>
-        /// Точность вывода валют
+        ///     Точность вывода валют
         /// </summary>
         private int Scale
         {
-            get { return Document.CurrencyScale != null ? Document.CurrencyScale : 2; }
+            get { return Document.CurrencyScale; }
         }
 
         /// <summary>
-        /// ТТН
+        ///     ТТН
         /// </summary>
         private Lib.Entities.Documents.EF.Trade.TTN Document
         {
-            get { return ParentPage.Document; }
+            get { return ((Nakladnaya)ParentPage).Document; }
         }
 
+        /// <summary>
+        /// Режим редактирования
+        /// </summary>
         private bool DocumentReadOnly
         {
             set
             {
-                efShipperStore.IsReadOnly = value;
-                efPayerStore.IsReadOnly = value;
+                efStoreShipper.IsReadOnly = value;
+                efStorePayer.IsReadOnly = value;
                 efResource.IsReadOnly = value;
                 efResourceRus.IsReadOnly = value;
                 efResourceLat.IsReadOnly = value;
@@ -78,88 +524,15 @@ namespace Kesco.App.Web.Docs.TTN
                 efAktsiz.IsReadOnly = value;
                 efVsego.IsReadOnly = value;
             }
+            get { return !((DocPage)ParentPage).DocEditable; }
         }
 
-        #endregion
-
-        /// <summary>
-        ///  Конструктор по умолчанию
-        /// </summary>
-        public MrisForm()
-        {
-            HelpUrl = "hlp/mris/help.htm";
-        }
-
-        /// <summary>
-        /// Событие загрузки страницы
-        /// </summary>
-        /// <param name="sender">Объект страницы</param>
-        /// <param name="e">Аргументы</param>
-        protected void Page_Load(object sender, EventArgs e)
-        {
-            if (!V4IsPostBack)
-            {
-                BindField();
-
-                GetOstatok();
-                V4SetFocus("efShipperStore");
-            }
-
-            efGTD.Filter.Type.Add(new DocTypeParam() { DocTypeEnum = DocTypeEnum.ТаможеннаяДекларация, QueryType = DocTypeQueryType.Equals });
-            efCountry.Filter.TerritoryCode.Add("2");
-
-            efResource.BeforeSearch += Resource_BeforeSearch;
-            efUnitAdv.BeforeSearch += UnitAdv_BeforeSearch;
-            efStavkaNDS.BeforeSearch += StavkaNDS_BeforeSearch;
-
-            efShipperStore.OnRenderNtf += ShipperStore_OnRenderNtf;
-            efPayerStore.OnRenderNtf += PayerStore_OnRenderNtf;
-            efResource.OnRenderNtf += Resource_OnRenderNtf;
-            efResourceRus.OnRenderNtf += ResourceRus_OnRenderNtf;
-            efResourceLat.OnRenderNtf += ResourceLat_OnRenderNtf;
-            efGTD.OnRenderNtf += Contract_OnRenderNtf;
-
-            efCount.PreRender += Count_PreRender;
-            efCurrency.PreRender += Currency_PreRender;
-            efBDOst.PreRender += new EventHandler(BDOst_PreRender);
-            efEDOst.PreRender += new EventHandler(EDOst_PreRender);
-
-            efCostOutNDS.PreRender += new EventHandler(CostOutNDS_PreRender);
-            efSummaOutNDS.PreRender += new EventHandler(SummaOutNDS_PreRender);
-            efSummaNDS.PreRender += new EventHandler(SummaNDS_PreRender);
-            efVsego.PreRender += new EventHandler(Vsego_PreRender);
-            efAktsiz.PreRender += new EventHandler(Aktsiz_PreRender);
-
-            DocumentReadOnly = !ParentPage.DocEditable;
-
-        }
-
-        #region InitControls
-        /// <summary>
-        /// Инициализация контролов
-        /// </summary>
-        void SetInitValue()
-        {
-            efRestType.Items.Add("", Resx.GetString("TTN_optTransactionBalance"));
-            efRestType.Items.Add("1", Resx.GetString("TTN_optBalanceCompletedDocuments"));
-            efRestType.Items.Add("0", Resx.GetString("TTN_optBalanceSignedDocuments"));
-
-            efDateDocB.Value = DateDocE.Value = Document.Date.ToShortDateString();
-
-            efCount.Precision = mris.ResourceId > 0 ? mris.Resource.GetScale4Unit(mris.UnitId.ToString(), 3, Document.GOPersonDataField.Id) : 3;
-
-            efCostOutNDS.Precision =
-            efSummaOutNDS.Precision =
-            efSummaNDS.Precision =
-            efAktsiz.Precision =
-            efVsego.Precision = Scale;
-        }
         #endregion
 
         #region Binder
 
         /// <summary>
-        /// 
+        /// Инициализация контролов
         /// </summary>
         protected override void EntityFieldInit()
         {
@@ -169,24 +542,48 @@ namespace Kesco.App.Web.Docs.TTN
                 idDoc = Request.QueryString["idDoc"];
                 idParentPage = Request.QueryString["idpp"];
 
-                ParentPage = Application[idParentPage] as Nakladnaya;
+                ParentPage = Application[idParentPage] as DocPage;
                 if (ParentPage == null)
                 {
-                    ShowMessage(Resx.GetString("errRetrievingPageObject"), Resx.GetString("errPrinting"), MessageStatus.Error);
+                    ShowMessage(Resx.GetString("errRetrievingPageObject"), Resx.GetString("errPrinting"),
+                        MessageStatus.Error);
                     return;
                 }
 
                 if (!String.IsNullOrEmpty(id) && id != "0")
                 {
                     mris = new Mris(id);
-                    //mris = GetObjectById(typeof(Mris), id) as Mris;
                     if (mris == null || mris.Id == "0")
-                        throw new LogicalException(Resx.GetString("TTN_ ERRMoveStockInitialized"), "", System.Reflection.Assembly.GetExecutingAssembly().GetName(), Priority.Info);
+                        throw new LogicalException(Resx.GetString("TTN_ ERRMoveStockInitialized"), "",
+                            Assembly.GetExecutingAssembly().GetName(), Priority.Info);
                 }
                 else
                 {
-                    mris = new Mris { DocumentId = int.Parse(idDoc) };
+                    mris = new Mris {DocumentId = int.Parse(idDoc)};
+                    if (Document.PositionMris != null && Document.PositionMris.Count > 0)
+                    {
+                        mris.ShipperStoreId = Document.PositionMris[0].ShipperStoreId;
+                        mris.PayerStoreId = Document.PositionMris[0].PayerStoreId;
+                    }
                     efChanged.ChangedByID = null;
+                }
+
+                if (mris.ShipperStoreId == null || mris.ShipperStoreId == 0)
+                {
+                    var shipperStoreFieldValue = ((Nakladnaya) ParentPage).ShipperStoreField.Value;
+                    if (shipperStoreFieldValue != "")
+                    {
+                        mris.ShipperStoreId = System.Convert.ToInt32(shipperStoreFieldValue);
+                    }
+                }
+
+                if (mris.PayerStoreId == null || mris.PayerStoreId == 0)
+                {
+                    var payerStoreFieldValue = ((Nakladnaya)ParentPage).PayerStoreField.Value;
+                    if (payerStoreFieldValue != "")
+                    {
+                        mris.PayerStoreId = System.Convert.ToInt32(payerStoreFieldValue);
+                    }
                 }
 
                 SetInitValue();
@@ -194,8 +591,8 @@ namespace Kesco.App.Web.Docs.TTN
 
             Entity = mris;
 
-            efShipperStore.BindStringValue = mris.ShipperStoreIdBind;
-            efPayerStore.BindStringValue = mris.PayerStoreIdBind;
+            efStoreShipper.BindStringValue = mris.ShipperStoreIdBind;
+            efStorePayer.BindStringValue = mris.PayerStoreIdBind;
             efResource.BindStringValue = mris.ResourceIdBind;
             efResourceRus.BindStringValue = mris.ResourceRusBind;
             efResourceLat.BindStringValue = mris.ResourceLatBind;
@@ -215,9 +612,8 @@ namespace Kesco.App.Web.Docs.TTN
         }
 
         /// <summary>
-        /// 
         /// </summary>
-        void BindField()
+        private void BindField()
         {
             RenderOsnUnit();
             RenderAdvUnit();
@@ -229,92 +625,33 @@ namespace Kesco.App.Web.Docs.TTN
         #endregion
 
         #region OnRenderNtf
-        private void ShipperStore_OnRenderNtf(object sender, Ntf ntf)
+
+        private void StoreShipper_OnRenderNtf(object sender, Ntf ntf)
         {
             ntf.Clear();
             var documentDate = Document.Date == DateTime.MinValue ? DateTime.Today : Document.Date;
 
             if (!Document.Type.Equals(DocTypeEnum.ТоварноТранспортнаяНакладная)) return;
 
-            if (efShipperStore.Value.Length == 0)
+            if (efStoreShipper.Value.Length == 0)
             {
-                if (Document.PostavschikDataField.Value.ToString().Length > 0)
+                if (Document.PostavschikField.Value.ToString().Length > 0)
                 {
-                    var p = new PersonOld(Document.PostavschikDataField.Id);
-                    //var p = GetObjectById(typeof(PersonOld), Document.PostavschikDataField.Id) as PersonOld;
+                   // var p = new PersonOld(Document.PostavschikDataField.Value.ToString());
+                    var p = ParentPage.GetObjectById(typeof(PersonOld), Document.PostavschikField.Value.ToString()) as PersonOld;
+
                     if (p == null || (!p.Unavailable && p.BusinessProjectID > 0))
-                        efShipperStore.NtfNotValidData();
+                        efStoreShipper.NtfNotValidData();
                 }
 
                 return;
             }
 
-            var s = new Store(efShipperStore.Value);
-            //var s = GetObjectById(typeof(Store), ShipperStore.Value) as Store;
+            //var s = new Store(efStoreShipper.Value);
+            var s = ParentPage.GetObjectById(typeof(Store), mris.ShipperStoreIdBind.Value) as Store;
             if (s == null || s.Unavailable)
             {
-                efShipperStore.ValueText = "#" + efShipperStore.Value;
-                ntf.Add(Resx.GetString("TTN_ntfWarehouseNotAvailable"), NtfStatus.Error);
-                return;
-            }
-            
-            if (s.KeeperId > 0)
-            {
-                var p = new PersonOld(s.KeeperId.ToString());
-                //var p = GetObjectById(typeof(PersonOld), s.KeeperId.ToString()) as PersonOld;
-
-                if (p == null)
-                {
-                    ntf.Add(Resx.GetString("TTN_ntfKeeperNotFound"), NtfStatus.Error);
-                    return;
-                }
-
-                if (!p.IsChecked)
-                {
-                    ntf.Add(Resx.GetString("TTN_ntfKeeperNotVerified"), NtfStatus.Error);
-                }
-
-                var crd = p.GetCard(documentDate);
-                if (crd == null)
-                {
-                    ntf.Add(string.Format(Resx.GetString("TTN_ntfKeeperNoDataOn") + " " + documentDate.ToString("dd.MM.yyyy")), NtfStatus.Error);
-                    efShipperStore.ValueText = (s.IBAN.Length > 0 ? s.IBAN : s.Name) + " в " + p.Name;
-                }
-                else
-                    efShipperStore.ValueText = (s.IBAN.Length > 0 ? s.IBAN : s.Name) + " в " + (crd.NameRus.Length > 0 ? crd.NameRus : crd.NameLat);
-            }
-
-            if (s != null && s.Id.Length > 0 && !s.Unavailable && !s.Manager.Id.Equals(Document.PostavschikDataField.Value.ToString()))
-            {
-                ntf.Add(Resx.GetString("TTN_ntfWarehouseNotMatchSupplier"), NtfStatus.Error);
-            }
-        }
-
-        private void PayerStore_OnRenderNtf(object sender, Ntf ntf)
-        {
-            ntf.Clear();
-            var documentDate = Document.Date == DateTime.MinValue ? DateTime.Today : Document.Date;
-
-            if (!Document.Type.Equals(DocTypeEnum.ТоварноТранспортнаяНакладная)) return;
-
-            if (efPayerStore.Value.Length == 0)
-            {
-                if (Document.PlatelschikDataField.Value.ToString().Length > 0)
-                {
-                    //var p = new PersonOld(Document.PlatelschikDataField.Id);
-                    var p = GetObjectById(typeof(PersonOld), Document.PlatelschikDataField.Id) as PersonOld;
-                    if (p==null || (!p.Unavailable && p.BusinessProjectID > 0))
-                        efPayerStore.NtfNotValidData();
-                }
-
-                return;
-            }
-
-            //var s = new Store(efPayerStore.Value);
-            var s = GetObjectById(typeof(Store), efPayerStore.Value) as Store;
-            if (s==null || s.Unavailable)
-            {
-                efPayerStore.ValueText = "#" + efPayerStore.Value;
+                efStoreShipper.ValueText = "#" + efStoreShipper.Value;
                 ntf.Add(Resx.GetString("TTN_ntfWarehouseNotAvailable"), NtfStatus.Error);
                 return;
             }
@@ -322,7 +659,8 @@ namespace Kesco.App.Web.Docs.TTN
             if (s.KeeperId > 0)
             {
                 //var p = new PersonOld(s.KeeperId.ToString());
-                var p = GetObjectById(typeof(PersonOld), s.KeeperId.ToString()) as PersonOld;
+                var p = ParentPage.GetObjectById(typeof(PersonOld), s.KeeperId.ToString()) as PersonOld;
+
                 if (p == null)
                 {
                     ntf.Add(Resx.GetString("TTN_ntfKeeperNotFound"), NtfStatus.Error);
@@ -334,21 +672,88 @@ namespace Kesco.App.Web.Docs.TTN
                     ntf.Add(Resx.GetString("TTN_ntfKeeperNotVerified"), NtfStatus.Error);
                 }
 
-                var crd = p.GetCard(documentDate);
-                if (crd == null)
+                //var crd = p.GetCard(documentDate);
+                var card = ((Nakladnaya)ParentPage).GetCardById(p, documentDate);
+                if (card == null)
                 {
-                    ntf.Add(string.Format(Resx.GetString("TTN_ntfKeeperNoDataOn") + " " + documentDate.ToString("dd.MM.yyyy")), NtfStatus.Error);
-                    efPayerStore.ValueText = (s.IBAN.Length > 0 ? s.IBAN : s.Name) + " " + Resx.GetString("msgIN") + " " + p.Name;
+                    ntf.Add(
+                        string.Format(Resx.GetString("TTN_ntfKeeperNoDataOn") + " " +
+                                      documentDate.ToString("dd.MM.yyyy")), NtfStatus.Error);
+                    efStoreShipper.ValueText = (s.IBAN.Length > 0 ? s.IBAN : s.Name) + " в " + p.Name;
                 }
                 else
-                    efPayerStore.ValueText = (s.IBAN.Length > 0 ? s.IBAN : s.Name) + " " + Resx.GetString("msgIN") + " " + (crd.NameRus.Length > 0 ? crd.NameRus : crd.NameLat);
+                    efStoreShipper.ValueText = (s.IBAN.Length > 0 ? s.IBAN : s.Name) + " в " +
+                                               (card.NameRus.Length > 0 ? card.NameRus : card.NameLat);
             }
 
-            if (s != null && s.Id.Length > 0 && !s.Unavailable && !s.Manager.Id.Equals(Document.PlatelschikDataField.Value.ToString()))
+            if (s.Id.Length > 0 && !s.Unavailable && !s.ManagerId.Equals(Document.PostavschikField.Value))
+            {
+                ntf.Add(Resx.GetString("TTN_ntfWarehouseNotMatchSupplier"), NtfStatus.Error);
+            }
+        }
+
+        private void StorePayer_OnRenderNtf(object sender, Ntf ntf)
+        {
+            ntf.Clear();
+            var documentDate = Document.Date == DateTime.MinValue ? DateTime.Today : Document.Date;
+
+            if (!Document.Type.Equals(DocTypeEnum.ТоварноТранспортнаяНакладная)) return;
+
+            if (efStorePayer.Value.Length == 0)
+            {
+                if (Document.PlatelschikField.Value.ToString().Length > 0)
+                {
+                    var p = ParentPage.GetObjectById(typeof (PersonOld), Document.PlatelschikField.Value.ToString()) as PersonOld;
+                    if (p == null || (!p.Unavailable && p.BusinessProjectID > 0))
+                        efStorePayer.NtfNotValidData();
+                }
+
+                return;
+            }
+
+            //var s = new Store(efStorePayer.Value);
+            var s = ParentPage.GetObjectById(typeof(Store), efStorePayer.Value) as Store;
+            if (s == null || s.Unavailable)
+            {
+                efStorePayer.ValueText = "#" + efStorePayer.Value;
+                ntf.Add(Resx.GetString("TTN_ntfWarehouseNotAvailable"), NtfStatus.Error);
+                return;
+            }
+
+            if (s.KeeperId > 0)
+            {
+                //var p = new PersonOld(s.KeeperId.ToString());
+                var p = ParentPage.GetObjectById(typeof(PersonOld), s.KeeperId.ToString()) as PersonOld;
+                if (p == null)
+                {
+                    ntf.Add(Resx.GetString("TTN_ntfKeeperNotFound"), NtfStatus.Error);
+                    return;
+                }
+
+                if (!p.IsChecked)
+                {
+                    ntf.Add(Resx.GetString("TTN_ntfKeeperNotVerified"), NtfStatus.Error);
+                }
+
+                //var card = p.GetCard(documentDate);
+                var card = ((Nakladnaya)ParentPage).GetCardById(p, documentDate);
+                if (card == null)
+                {
+                    ntf.Add(
+                        string.Format(Resx.GetString("TTN_ntfKeeperNoDataOn") + " " +
+                                      documentDate.ToString("dd.MM.yyyy")), NtfStatus.Error);
+                    efStorePayer.ValueText = (s.IBAN.Length > 0 ? s.IBAN : s.Name) + " " + Resx.GetString("msgIN") + " " +
+                                             p.Name;
+                }
+                else
+                    efStorePayer.ValueText = (s.IBAN.Length > 0 ? s.IBAN : s.Name) + " " + Resx.GetString("msgIN") + " " +
+                                             (card.NameRus.Length > 0 ? card.NameRus : card.NameLat);
+            }
+
+            if (s.Id.Length > 0 && !s.Unavailable && !s.ManagerId.Equals(Document.PlatelschikField.Value))
             {
                 ntf.Add(Resx.GetString("TTN_ntfWarehouseNotMatchPayer"), NtfStatus.Error);
             }
-
         }
 
         private void Resource_OnRenderNtf(object sender, Ntf ntf)
@@ -358,22 +763,22 @@ namespace Kesco.App.Web.Docs.TTN
                 return;
             }
 
-            if (Document.DogovorField.Value.ToString().Length == 0 || Document.DocumentData.Unavailable || Document.Type == DocTypeEnum.ТипНеУказан )
+            if (Document.DogovorField.Value.ToString().Length == 0)
                 return;
 
-            int inx = 1;
-            
+            var inx = 1;
+
             List<DogovorPosition> positions = null;
-            if (Document.Prilozhenie != null && Document.Prilozhenie.ToString().Length > 0 && !Document.Prilozhenie.Unavailable)
+            if (Document.PrilozhenieField.Value.ToString().Length > 0)
             {
-                positions = DocumentPosition<DogovorPosition>.LoadByDocId(int.Parse(Document.Prilozhenie.Id));
+                positions = DocumentPosition<DogovorPosition>.LoadByDocId(int.Parse(Document.PrilozhenieField.Value.ToString()));
                 inx = 2;
             }
-            else if (Document.Dogovor != null && Document.Dogovor.Id.Length > 0 && !Document.Dogovor.Unavailable)
-                positions = DocumentPosition<DogovorPosition>.LoadByDocId(int.Parse(Document.Dogovor.Id));
+            else if (Document.DogovorField.Value.ToString().Length > 0)
+                positions = DocumentPosition<DogovorPosition>.LoadByDocId(int.Parse(Document.DogovorField.Value.ToString()));
             else
                 return;
-            
+
             var fl = false;
             foreach (var p in positions.Where(p => p.Resource.Equals(efResource)))
             {
@@ -382,8 +787,10 @@ namespace Kesco.App.Web.Docs.TTN
             }
 
             if (!fl && positions.Count > 0)
-                ntf.Add((inx == 2) ? Resx.GetString("TTN_ntfNotMatchApplication") : Resx.GetString("TTN_ntfNotComplyContract"), NtfStatus.Error);
-             
+                ntf.Add(
+                    (inx == 2)
+                        ? Resx.GetString("TTN_ntfNotMatchApplication")
+                        : Resx.GetString("TTN_ntfNotComplyContract"), NtfStatus.Error);
         }
 
         private void ResourceRus_OnRenderNtf(object sender, Ntf ntf)
@@ -391,9 +798,8 @@ namespace Kesco.App.Web.Docs.TTN
             ntf.Clear();
             if (mris.ResourceId == 0) return;
             if (!efResourceRus.Value.Equals(mris.Resource.Name))
-            {
                 ntf.Add(Resx.GetString("TTN_ntfRussianNameNotMatchProduct"), NtfStatus.Error);
-            }
+            
         }
 
         private void ResourceLat_OnRenderNtf(object sender, Ntf ntf)
@@ -401,16 +807,14 @@ namespace Kesco.App.Web.Docs.TTN
             ntf.Clear();
             if (mris.ResourceId == 0 || mris.Resource.Unavailable) return;
             if (!efResourceLat.Value.Equals(mris.Resource.ResourceLat))
-            {
-                //ResourceLat.RenderNtf(new StringWriter(new StringBuilder("латинское название не соответствует продукту")));
                 ntf.Add(Resx.GetString("TTN_ntfLatinNameNotMatchProduct"), NtfStatus.Error);
-            }
+            
         }
 
-        private void Contract_OnRenderNtf(object sender, Ntf ntf)
+        private void GTD_OnRenderNtf(object sender, Ntf ntf)
         {
             ntf.Clear();
-            if (mris.CountryId != RegionRussia && mris.CountryId > 0 && mris.GTDId == 0)
+            if (mris.CountryId > 0 && mris.CountryId != RegionRussia  && mris.GTDId == 0)
                 efGTD.NtfNotValidData();
 
             if (efGTD.Value.Length == 0)
@@ -418,13 +822,15 @@ namespace Kesco.App.Web.Docs.TTN
                 return;
             }
 
-            var d = new Document(mris.GTDId.ToString());
-            //var d = GetObjectById(typeof(Document), Contract.Value) as Document;
-            if (d == null || d.Unavailable)
+            
+            if (mris.GTDId.HasValue)
             {
-                efGTD.ValueText = "#" + efGTD.Value;
-                ntf.Add(Resx.GetString("TTN_ntfDocumentNotAvailable"), NtfStatus.Error);
-                return;
+                var d = new Document(mris.GTDId.Value.ToString(), false)  ;
+                if (d == null || d.Unavailable)
+                {
+                    efGTD.ValueText = "#" + efGTD.Value;
+                    ntf.Add(Resx.GetString("TTN_ntfDocumentNotAvailable"), NtfStatus.Error);
+                }
             }
         }
 
@@ -433,36 +839,57 @@ namespace Kesco.App.Web.Docs.TTN
         #region BeforeSearch
 
         /// <summary>
-        /// Событие, устанавливающее параметры фильтрации перед поиском продуктов в фильтре
+        ///     Событие, устанавливающее параметры фильтрации перед поиском продуктов в фильтре
         /// </summary>
         /// <param name="sender">Контрол</param>
-        void Resource_BeforeSearch(object sender)
+        private void Resource_BeforeSearch(object sender)
         {
             efResource.Filter.AllChildrenWithParentIDs.Clear();
             efResource.Filter.AllChildrenWithParentIDs.Value = "2";
+            if (mris.ShipperStoreId > 0)
+            {
+                var st = GetObjectById(typeof(Store), mris.ShipperStoreId.ToString()) as Store;
+                if (st != null) efResource.Filter.AllChildrenWithParentIDs.Value = st.ResourceId.ToString();
+            }
         }
 
+        private void StoreShipper_BeforeSearch(object sender)
+        {
+            efStoreShipper.Filter.ManagerId.Value = Document.PostavschikField.Value.ToString();
+            efStoreShipper.Filter.StoreTypeId.CompanyHowSearch = "0";
+            efStoreShipper.Filter.StoreTypeId.Value = "-1,21,22,23";
+        }
+
+        private void StorePayer_BeforeSearch(object sender)
+        {
+            efStorePayer.Filter.ManagerId.Value = Document.PlatelschikField.Value.ToString();
+            efStorePayer.Filter.StoreTypeId.CompanyHowSearch = "0";
+            efStorePayer.Filter.StoreTypeId.Value = "-1,21,22,23";
+        }
+        
         /// <summary>
-        /// Событие, устанавливающее параметры фильтрации перед поиском дополнительных единиц измерения в фильтре
+        ///     Событие, устанавливающее параметры фильтрации перед поиском дополнительных единиц измерения в фильтре
         /// </summary>
         /// <param name="sender">Контрол</param>
-        void UnitAdv_BeforeSearch(object sender)
+        private void UnitAdv_BeforeSearch(object sender)
         {
             if (mris.ResourceId == 0) return;
             efUnitAdv.Filter.Resource = mris.ResourceId;
         }
 
         /// <summary>
-        /// Событие, устанавливающее параметры фильтрации перед поиском ставок в фильтре
+        ///     Событие, устанавливающее параметры фильтрации перед поиском ставок в фильтре
         /// </summary>
         /// <param name="sender">Контрол</param>
-        void StavkaNDS_BeforeSearch(object sender)
+        private void StavkaNDS_BeforeSearch(object sender)
         {
             efStavkaNDS.Filter.TerritoryCode = RegionRussia;
         }
+
         #endregion
 
         #region Changed
+
         /// <summary>
         ///     Событие, отслеживающее изменение контрола Склада поставщика
         /// </summary>
@@ -470,7 +897,7 @@ namespace Kesco.App.Web.Docs.TTN
         /// <param name="e">Аргументы</param>
         protected void ShipperStore_Changed(object sender, ProperyChangedEventArgs e)
         {
-            GetOstatok();
+            //GetOstatok();
         }
 
         /// <summary>
@@ -480,7 +907,7 @@ namespace Kesco.App.Web.Docs.TTN
         /// <param name="e">Аргументы</param>
         protected void PayerStore_Changed(object sender, ProperyChangedEventArgs e)
         {
-            GetOstatok();
+            //GetOstatok();
         }
 
         /// <summary>
@@ -490,26 +917,32 @@ namespace Kesco.App.Web.Docs.TTN
         /// <param name="e">Аргументы</param>
         protected void Resource_Changed(object sender, ProperyChangedEventArgs e)
         {
+            if (e.OldValue.Equals(e.NewValue)) return;
+            ClearUnits();
+
             if (mris.ResourceId == 0)
             {
                 efResourceRus.Value =
-                efResourceLat.Value = "";
+                    efResourceLat.Value = "";
                 efResourceRus.RenderNtf();
                 efResourceLat.RenderNtf();
-                return;
+            }
+            else
+            {
+                efResourceRus.Value = mris.Resource.Name;
+                efResourceLat.Value = mris.Resource.ResourceLat;
+
+                efResourceRus.RenderNtf();
+                var efUnitAdvOld = efUnitAdv.Value;
+                efUnitAdv.TryFindSingleValue();
+                UnitAdv_Changed(null, new ProperyChangedEventArgs(efUnitAdvOld, efUnitAdv.Value));
+                FillSpecNDSByParentResource(mris.Resource);
             }
 
-            if (e.OldValue.Equals(e.NewValue)) return;
-
-            efResourceRus.Value = mris.Resource.Name;
-            efResourceLat.Value = mris.Resource.ResourceLat;
-
-            efResourceRus.RenderNtf();
-            
-            ClearUnits();
-            efUnitAdv.TryFindSingleValue();
-
-            FillSpecNDSByParentResource(mris.Resource);
+            if (mris.UnitId != 0 && mris.UnitId != null)
+            {
+                V4SetFocus("efCount");
+            }
         }
 
         /// <summary>
@@ -545,7 +978,7 @@ namespace Kesco.App.Web.Docs.TTN
         protected void Count_Changed(object sender, ProperyChangedEventArgs e)
         {
             if (efCount.Value.Trim().Length == 0) return;
-            mris.Recalc(e.OldValue, "3", "Count", "0", Scale);
+            ShowCalcMessage(mris.Recalc(e.OldValue, "3", "Count", "0", Scale));
         }
 
         /// <summary>
@@ -566,7 +999,7 @@ namespace Kesco.App.Web.Docs.TTN
                 }
                 else
                 {
-                    mris.Recalc(e.OldValue, "2", "CostOutNDS", "0", Scale);
+                    ShowCalcMessage(mris.Recalc(e.OldValue, "2", "CostOutNDS", "0", Scale));
                 }
             }
         }
@@ -578,7 +1011,7 @@ namespace Kesco.App.Web.Docs.TTN
         /// <param name="e">Аргументы</param>
         protected void StavkaNDS_Changed(object sender, ProperyChangedEventArgs e)
         {
-            if (e.NewValue.Length >= 0)
+            if (e.NewValue != null && e.NewValue.Length >= 0)
             {
                 if (mris.CostOutNDS > 0
                     && !e.NewValue.Equals(e.OldValue)
@@ -588,8 +1021,9 @@ namespace Kesco.App.Web.Docs.TTN
                     DialogCostRecalc("StavkaNDS", e.OldValue, "2");
                 else
                 {
-                    mris.Recalc(e.OldValue, "2", "StavkaNDS", "0", Scale);
+                    ShowCalcMessage(mris.Recalc(e.OldValue, "2", "StavkaNDS", "0", Scale));
                 }
+
             }
         }
 
@@ -635,7 +1069,8 @@ namespace Kesco.App.Web.Docs.TTN
         {
             if (efUnitAdv.Value.Length == 0)
             {
-                efUnit.Value = "";
+                mris.UnitId = null;
+                efUnit.RefreshRequired = true;
                 return;
             }
 
@@ -643,104 +1078,112 @@ namespace Kesco.App.Web.Docs.TTN
 
             efUnitAdv.Value = "";
             SetAdvUnitInfo(e.OldValue);
-            //SetUnitAdvValidator();
 
-            efUnit.Value = mris.UnitId.ToString();
-            efUnit.ValueText = mris.Unit.Описание;
-            //Unit.RefreshFieldBind();
+            //efUnit.Value = mris.UnitId.ToString();
+            //efUnit.ValueText = mris.Unit.Описание;
         }
+
         #endregion
 
         #region PreRender
 
         /// <summary>
-        /// PreRender для количества
+        ///     PreRender для количества
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void Count_PreRender(object sender, EventArgs e)
         {
-            var maxscale = mris.Resource.GetScale4Unit(efUnit.Value, 0, Document.GOPersonDataField.Id);
-            efCount.Value = Lib.ConvertExtention.Convert.Decimal2StrInit((decimal)mris.Count, maxscale);
+            var maxscale = Scale;
+            if (!mris.UnitId.ToString().IsNullEmptyOrZero())
+            {
+                maxscale = mris.Resource.GetScale4Unit(mris.UnitId.ToString(), 3, Document.PlatelschikField.Value.ToString());
+            }
+            efCount.Value = Convert.Decimal2StrInit((decimal)mris.Count, maxscale);
+            efCount.Precision = maxscale;
 
             RefreshErCol();
         }
 
         /// <summary>
-        /// PreRender для цены без НДС
+        ///     PreRender для цены без НДС
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void CostOutNDS_PreRender(object sender, EventArgs e)
         {
-            efCostOutNDS.Value = Lib.ConvertExtention.Convert.Decimal2StrInit((decimal)mris.CostOutNDS, Scale);
-        }
-
-        private void SummaOutNDS_PreRender(object sender, EventArgs e)
-        {
-            efSummaOutNDS.Value = Lib.ConvertExtention.Convert.Decimal2StrInit((decimal)mris.SummaOutNDS, Scale);
-        }
-
-        private void SummaNDS_PreRender(object sender, EventArgs e)
-        {
-            efSummaNDS.Value = Lib.ConvertExtention.Convert.Decimal2StrInit((decimal)mris.SummaNDS, Scale);
-        }
-
-        private void Vsego_PreRender(object sender, EventArgs e)
-        {
-            efVsego.Value = Lib.ConvertExtention.Convert.Decimal2StrInit((decimal)mris.Vsego, Scale);
-        }
-
-        private void Aktsiz_PreRender(object sender, EventArgs e)
-        {
-            efAktsiz.Value = Lib.ConvertExtention.Convert.Decimal2StrInit((decimal)mris.Aktsiz, Scale);
+            efCostOutNDS.Value = Convert.Decimal2StrInit(mris.CostOutNDS, Scale);
         }
 
         /// <summary>
-        /// Рендер поля валюты
+        ///     PreRender для суммы без НДС
         /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void SummaOutNDS_PreRender(object sender, EventArgs e)
+        {
+            efSummaOutNDS.Value = Convert.Decimal2StrInit(mris.SummaOutNDS, Scale);
+        }
+
+        /// <summary>
+        ///     PreRender для ставки НДС
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void SummaNDS_PreRender(object sender, EventArgs e)
+        {
+            efSummaNDS.Value = Convert.Decimal2StrInit(mris.SummaNDS, Scale);
+        }
+
+        /// <summary>
+        ///     PreRender для итоговой суммы
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Vsego_PreRender(object sender, EventArgs e)
+        {
+            efVsego.Value = Convert.Decimal2StrInit(mris.Vsego, Scale);
+        }
+
+        /// <summary>
+        ///     PreRender для Акциза
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void Aktsiz_PreRender(object sender, EventArgs e)
+        {
+            efAktsiz.Value = Convert.Decimal2StrInit(mris.Aktsiz, Scale);
+        }
+
+        /// <summary>
+        ///     PreRender поля валюты
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param> 
         protected void Currency_PreRender(object sender, EventArgs e)
         {
             if (Document.Type.Equals(DocTypeEnum.ТоварноТранспортнаяНакладная))
                 efCurrency.InnerText = Document.Currency.Name;
         }
 
+        /// <summary>
+        ///     PreRender количества остатков
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param> 
         private void BDOst_PreRender(object sender, EventArgs e)
         {
-            efBDOst.Precision = GetScale();
+            //efBDOst.Precision = GetScale();
         }
 
+        /// <summary>
+        ///     PreRender ед. изм. остатков
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param> 
         private void EDOst_PreRender(object sender, EventArgs e)
         {
-            efEDOst.Precision = GetScale();
-        }
-
-        #endregion
-
-        #region Render
-        /// <summary>
-        ///     Подготовка данных для отрисовки заголовка страницы(панели с кнопками)
-        /// </summary>
-        /// <returns></returns>
-        protected string RenderDocumentHeader()
-        {
-            using (var w = new StringWriter())
-            {
-                try
-                {
-                    ClearMenuButtons();
-                    SetMenuButtons();
-                    RenderButtons(w);
-                }
-                catch (Exception e)
-                {
-                    var dex = new DetailedException(Resx.GetString("TTN_errFailedGenerateButtons") + ": " + e.Message, e);
-                    Logger.WriteEx(dex);
-                    throw dex;
-                }
-
-                return w.ToString();
-            }
+            //efEDOst.Precision = GetScale();
         }
 
         #endregion
@@ -756,9 +1199,9 @@ namespace Kesco.App.Web.Docs.TTN
             {
                 ID = "btnSave",
                 V4Page = this,
-                Text = Resx.GetString("cmdSave"),
+                Text = Resx.GetString("cmdSave") + "&nbsp;(F2)",
                 Title = Resx.GetString("cmdSave"),
-                Width = 105,
+                Width = 125,
                 IconJQueryUI = ButtonIconsEnum.Save,
                 OnClick = "cmd('cmd', 'SaveMris');"
             };
@@ -782,27 +1225,27 @@ namespace Kesco.App.Web.Docs.TTN
                 Title = Resx.GetString("cmdDeleteTitle"),
                 IconJQueryUI = ButtonIconsEnum.Delete,
                 Width = 105,
-                OnClick = string.Format("v4_showConfirm('{0}','{1}','{2}','{3}','{4}', null);", 
+                OnClick = string.Format("v4_showConfirm('{0}','{1}','{2}','{3}','{4}', null);",
                     string.Format("{0} {1}", Resx.GetString("msgDeleteConfirm"), mris.ResourceRus),
                     Resx.GetString("errDoisserWarrning"),
                     Resx.GetString("CONFIRM_StdCaptionYes"),
                     Resx.GetString("CONFIRM_StdCaptionNo"),
                     string.Format("cmd({0});", HttpUtility.JavaScriptStringEncode("'cmd', 'DeleteData'"))
-                )
+                    )
             };
-            
+
             var btnClose = new Button
             {
                 ID = "btnClose",
-                V4Page = this.ParentPage,
+                V4Page = ParentPage,
                 Text = Resx.GetString("cmdClose"),
                 Title = Resx.GetString("cmdCloseTitleApp"),
                 IconJQueryUI = ButtonIconsEnum.Close,
                 Width = 105,
-                OnClick = "parent.resources_Records_Close(idp);"
+                OnClick = "parent.resources_Records_Close(idp, null);"
             };
 
-            var buttons = ParentPage.DocEditable ? new[] {btnAdd, btnRefresh, btnClear, btnClose} : new[] { btnClose };
+            var buttons = ((DocPage)ParentPage).DocEditable ? new[] {btnAdd, btnRefresh, btnClear, btnClose} : new[] {btnClose};
             AddMenuButton(buttons);
         }
 
@@ -816,24 +1259,44 @@ namespace Kesco.App.Web.Docs.TTN
                 // 
                 mris.DateMove = DateTime.Today;
                 mris.TransactionType = 12; // реализация
+                if (Document.PositionMris != null && Document.PositionMris.Count > 0)
+                {
+                    mris.Order = Document.PositionMris.Max(l => l.Order) + 1;
+                }
+                else
+                {
+                    mris.Order = 1;
+                }
 
+                var ctrlFocus = mris.Id.IsNullEmptyOrZero() ? "" : "addResource";
+
+                var reloadParentForm = false;
+                if (mris.DocumentId == 0)
+                {
+                    List<DBCommand> cmds = null;
+                    Document.Save(false, cmds);
+                    mris.DocumentId = Document.DocId;
+                    reloadParentForm = true;
+                }
+
+                var isNew = mris.Id.IsNullEmptyOrZero(); 
                 mris.Save(false);
-                JS.Write("parent.resources_Records_Save();");
+                JS.Write("parent.resources_Records_Save('{0}','{1}','{2}');", ctrlFocus, reloadParentForm, isNew);
             }
         }
 
         /// <summary>
-        /// Обновление данных формы из объекта
+        ///     Обновление данных формы из объекта
         /// </summary>
         private void RefreshData()
         {
-            ClearObjects();
+            ClearCacheObjects();
             BindField();
             RefreshNtf();
         }
 
         /// <summary>
-        /// Очистка всех данных формы
+        ///     Очистка всех данных формы
         /// </summary>
         private void DeleteData()
         {
@@ -843,146 +1306,13 @@ namespace Kesco.App.Web.Docs.TTN
 
         #endregion
 
-        #region Validation
-        /// <summary>
-        /// Валидация контролов
-        /// </summary>
-        /// <returns></returns>
-        private bool Validation()
-        {
-            var title = Resx.GetString("TTN_msgDocumentCanNotBeSaved");
-
-            if (mris.ShipperStoreId == 0)
-            {
-                // Не заполнено поле 'склад поставщика'
-                ShowMessage(Resx.GetString("TTN_ntfNotShipperStore"), title);
-                efShipperStore.Focus();
-                return false;
-            }
-
-            if (mris.PayerStoreId == 0)
-            {
-                // Не заполнено поле 'склад плательщика' 
-                ShowMessage(Resx.GetString("TTN_ntfNotPayerStore"), title);
-                efPayerStore.Focus();
-                return false;
-            }
-
-            if (mris.ResourceId == 0)
-            {
-                // Не заполнено поле 'продукт'
-                ShowMessage(Resx.GetString("TTN_ntfNotProduct"), title);
-                efResource.Focus();
-                return false;
-            }
-
-            if (mris.ResourceRus.Length == 0)
-            {
-                // Не заполнено поле 'русское название продукта'
-                ShowMessage(Resx.GetString("TTN_ntfNotResourceRus"), title);
-                efResourceRus.Focus();
-                return false;
-            }
-
-            if (mris.Count == 0)
-            {
-                // Не заполнено поле 'Количество'
-                ShowMessage(Resx.GetString("TTN_ntfNotCount"), title);
-                efCount.Focus();
-                return false;
-            }
-
-            if (mris.UnitId == 0)
-            {
-                // Не заполнено поле 'Единица измерения'
-                ShowMessage(Resx.GetString("TTN_ntfNotUnit"), title);
-                efUnitAdv.Focus();
-                return false;
-            }
-
-            if (mris.CostOutNDS.ToString(CultureInfo.InvariantCulture).Length == 0)
-            {
-                // Не заполнено поле 'Цена без НДС'
-                ShowMessage(Resx.GetString("TTN_ntfNotCostOutNDS"), title);
-                efCostOutNDS.Focus();
-                return false;
-            }
-            
-            if (mris.CostOutNDS == 0)
-            {
-                // Цена без НДС должна быть больше или меньше 0
-                ShowMessage(Resx.GetString("TTN_ntfCostOutNDSIncorrect"), title);
-                efCostOutNDS.Focus();
-                return false;
-            }
-
-            if (mris.StavkaNDSId == 0)
-            {
-                // Не заполнено поле 'Cтавка НДС'
-                ShowMessage(Resx.GetString("TTN_ntfNotStavkaNDS"), title);
-                efStavkaNDS.Focus();
-                return false;
-            }
-
-            if (mris.SummaOutNDS.ToString(CultureInfo.InvariantCulture).Length == 0)
-            {
-                // Не заполнено поле 'Сумма без НДС'
-                ShowMessage(Resx.GetString("TTN_ntfNotSummaOutNDS"), title);
-                efSummaOutNDS.Focus();
-                return false;
-            }
-            
-            if (mris.SummaOutNDS == 0)
-            {
-                // Сумма без НДС должна быть больше или меньше 0
-                ShowMessage(Resx.GetString("TTN_ntfSummaOutNDSIncorrect"), title);
-                efSummaOutNDS.Focus();
-                return false;
-            }
-
-            if (mris.SummaNDS == 0)
-            {
-                // Не заполнено поле 'Сумма НДС'
-                ShowMessage(Resx.GetString("TTN_ntfNotSummaNDS"), title);
-                efSummaNDS.Focus();
-                return false;
-            }
-
-            if (mris.Vsego.ToString(CultureInfo.InvariantCulture).Length == 0)
-            {
-                // Не заполнено поле 'Всего'
-                ShowMessage(Resx.GetString("TTN_ntfNotVsego"), title);
-                efVsego.Focus();
-                return false;
-            }
-            
-            if (mris.Vsego == 0)
-            {
-                // Значение поля 'Всего' должно быть больше или меньше 0
-                ShowMessage(Resx.GetString("TTN_ntfVsegoIncorrect"), title);
-                efVsego.Focus();
-                return false;
-            }
-
-            if (mris.CountryId > 0 && !mris.CountryId.Equals(RegionRussia) && mris.GTDId == 0)
-            {
-                // Необходимо указать таможенную декларацию
-                ShowMessage(Resx.GetString("TTN_ntfNotGTD"), title);
-                efGTD.Focus();
-                return false;
-            }
-
-            return true;
-        }
-        #endregion
-
         #region Unit
 
         /// <summary>
-        /// Установка единицы измерения по ресурсу при выборе доп. единицы измерения
+        ///     Установка единицы измерения по ресурсу при выборе доп. единицы измерения
         /// </summary>
         /// <param name="_unit">ед.изм.</param>
-        void SetUnitInfo(string _unit)
+        private void SetUnitInfo(string _unit)
         {
             if (mris.ResourceId == 0 || mris.Resource == null || mris.Resource.Unavailable) return;
 
@@ -993,129 +1323,159 @@ namespace Kesco.App.Web.Docs.TTN
         }
 
         /// <summary>
-        /// Установка единицы измерения по ресурсу
+        ///     Установка единицы измерения по ресурсу
         /// </summary>
         /// <param name="res">Ресурс</param>
-        void SetUnitInfoByOsnUnit(Resource res)
+        private void SetUnitInfoByOsnUnit(Resource res)
         {
             ClearUnits();
-            mris.UnitId = res.UnitCode; efUnit.Value = mris.UnitId.ToString();
-            mris.Coef = 1; efMCoef.Value = mris.Coef.ToString(CultureInfo.InvariantCulture);
+            mris.UnitId = res.UnitCode;
+            efUnit.RefreshRequired = true;
+            mris.Coef = 1;
+            efMCoef.Value = mris.Coef.ToString();
         }
 
         /// <summary>
-        /// Заполнения объекта данными ед.изм. и коэффициента 
+        ///     Заполнения объекта данными ед.изм. и коэффициента
         /// </summary>
         /// <param name="res">Ресурс</param>
         /// <param name="_unit">Ед.изм.</param>
-        void SetUnitInfoByAdvUnit(Resource res, string _unit)
+        private void SetUnitInfoByAdvUnit(Resource res, string _unit)
         {
             ClearUnits();
 
             //UnitAdv rxu = new UnitAdv(_unit);
-            var rxu = GetObjectById(typeof(UnitAdv), _unit) as UnitAdv;
+            var rxu = GetObjectById(typeof (UnitAdv), _unit) as UnitAdv;
             if (rxu == null || rxu.Unavailable) return;
 
-            mris.UnitId = rxu.Unit.КодЕдиницыИзмерения; efUnit.Value = mris.UnitId.ToString();
-            mris.Coef = rxu.Коэффициент; efMCoef.Value = mris.Coef.ToString(CultureInfo.InvariantCulture);
+            mris.UnitId = rxu.Unit.КодЕдиницыИзмерения;
+            efUnit.RefreshRequired = true; 
+            mris.Coef = rxu.Коэффициент;
+            efMCoef.Value = mris.Coef.ToString();
         }
 
         /// <summary>
-        /// Очистка контролов ед.изм.
+        ///     Очистка контролов ед.изм.
         /// </summary>
-        void ClearUnits()
+        private void ClearUnits()
         {
             efUnitAdv.Value = "";
-            mris.UnitId = 0;
-            mris.Coef = 0;
-
+            mris.UnitId = null;
+            efUnit.RefreshRequired = true;
+            mris.Coef = null;
             RenderOsnUnit();
             RenderAdvUnit();
         }
 
         /// <summary>
-        /// Рендер поля Эквивалент
+        ///     Рендер поля Эквивалент
         /// </summary>
         protected void RenderOsnUnit()
         {
-            if (mris.Coef == 0) return;
-            if (mris.ResourceId == 0 || mris.Resource == null || mris.Resource.Unavailable) return;
-            if (mris.Resource.UnitCode == 0) return;
+            if (mris.Coef == 0 || (mris.ResourceId == 0 || mris.Resource == null || mris.Resource.Unavailable))
+            {
+                efOsnUnit.Value = "";
+                JS.Write("ShowControl('trEquivalent','True');");
+                return;
+            }
 
+            var resourceUnit = GetObjectById(typeof(Unit), mris.Resource.UnitCode.ToString()) as Unit;
+
+            if (resourceUnit == null || resourceUnit.Id.IsNullEmptyOrZero() || resourceUnit.Unavailable)
+            {
+                efOsnUnit.Value = "";
+                JS.Write("ShowControl('trEquivalent','True');");
+                return;
+            }
+
+            if (resourceUnit.Id == mris.UnitId.ToString())
+            {
+                JS.Write("ShowControl('trEquivalent','True');");
+                return;
+            }
+
+            JS.Write("ShowControl('trEquivalent','False');");
             efOsnUnit.Value = "&nbsp;" + mris.Resource.Unit.ЕдиницаРус;
         }
 
         /// <summary>
-        /// Рендер поля Эквивалент
+        ///     Рендер поля Эквивалент
         /// </summary>
         protected void RenderAdvUnit()
         {
-            if (mris.UnitId == 0) return;
-            var un = mris.Unit;
-            if (un == null || un.Unavailable) return;
-            efAdvUnit.Value = "1&nbsp;" + un.ЕдиницаРус + "&nbsp;=&nbsp;";
-            //efMCoef.Value = mris.Coef.ToString(CultureInfo.InvariantCulture);
-            //efMCoef.Value = Lib.ConvertExtention.Convert.Double2Str(mris.Coef, Scale);
-            
+            if (mris.UnitId == 0)
+            {
+                efAdvUnit.Value = "";
+                return;
+            }
+
+            var mrisUnit = GetObjectById(typeof(Unit), mris.UnitId.ToString()) as Unit;
+
+            if (mrisUnit == null || mrisUnit.Unavailable)
+            {
+                efAdvUnit.Value = "";
+                return;
+            }
+
+            efAdvUnit.Value = "1&nbsp;" + mrisUnit.ЕдиницаРус + "&nbsp;=&nbsp;";
         }
 
         /// <summary>
-        /// Пересчет полей в соответствии с доп. ед.изм.
+        ///     Пересчет полей в соответствии с доп. ед.изм.
         /// </summary>
-        void SetAdvUnitInfo(string _oldVal)
+        private void SetAdvUnitInfo(string _oldVal)
         {
-            int oldVal = 0;
+            var oldVal = 0;
             Int32.TryParse(_oldVal, out oldVal);
             if (oldVal == 0) return;
 
             //var old = new Unit(_oldVal.ToString(CultureInfo.InvariantCulture));
-            var old = GetObjectById(typeof(Unit), _oldVal.ToString(CultureInfo.InvariantCulture)) as Unit;
+            var old = GetObjectById(typeof (Unit), _oldVal.ToString(CultureInfo.InvariantCulture)) as Unit;
             if (old != null && mris.Count > 0 && mris.ResourceId > 0)
             {
-                var maxscale = mris.Resource.GetScale4Unit(efUnit.Value, 0, Document.GOPersonDataField.Id);
-                mris.Count = Math.Round(mris.Count / mris.Resource.ConvertionCoefficient(old, mris.Unit), maxscale);
-                efCount.Value = Kesco.Lib.ConvertExtention.Convert.Decimal2StrInit((decimal)mris.Count, maxscale);
-                mris.CostOutNDS = Math.Round(mris.CostOutNDS * (decimal)mris.Resource.ConvertionCoefficient(old, mris.Unit), Scale);
+                var maxscale = mris.Resource.GetScale4Unit(mris.UnitId.ToString(), 3, Document.PlatelschikField.Value.ToString());
+                mris.Count = Math.Round(mris.Count/mris.Resource.ConvertionCoefficient(old, mris.Unit), maxscale);
+                efCount.Value = Convert.Decimal2StrInit((decimal) mris.Count, maxscale);
+                mris.CostOutNDS =
+                    Math.Round(mris.CostOutNDS*(decimal) mris.Resource.ConvertionCoefficient(old, mris.Unit), Scale);
                 efCostOutNDS.Value = mris.CostOutNDS.ToString(CultureInfo.InvariantCulture);
-                mris.Recalc(mris.CostOutNDS.ToString(), "2", "CostOutNDS", "0", Scale);
+                ShowCalcMessage(mris.Recalc(mris.CostOutNDS.ToString(), "2", "CostOutNDS", "0", Scale));
             }
-
-            GetOstatok();
         }
 
         /// <summary>
-        /// Расчет остатков на начало и конец дня
+        ///     Расчет остатков на начало и конец дня
         /// </summary>
-        void GetOstatok()
+        private void GetOstatok()
         {
-
             if (mris.ResourceId == 0 || mris.ShipperStoreId == 0 || mris.UnitId == 0)
             {
                 ClearOstatok();
                 return;
             }
 
-            string Unit_SymbolRus = (mris.UnitId > 0 ? mris.Unit.ЕдиницаРус : "");
-            string _unit = mris.UnitId.ToString();
+            var Unit_SymbolRus = (mris.UnitId > 0 ? mris.Unit.ЕдиницаРус : "");
+            var _unit = mris.UnitId.ToString();
 
             Unit_SymbolRus = " " + Unit_SymbolRus;
 
-            string ost1 = Store.GetOstatokResource(mris.ShipperStoreId.ToString(),
-                mris.ResourceId.ToString(CultureInfo.InvariantCulture), _unit, Document.Date, efResourceChild.Value.Equals("1"), efRestType.Value);
-            string ost2 = Store.GetOstatokResource(mris.ShipperStoreId.ToString(),
-                mris.ResourceId.ToString(CultureInfo.InvariantCulture), _unit, Document.Date.AddDays(1), efResourceChild.Value.Equals("1"), efRestType.Value);
+            var ost1 = Store.GetOstatokResource(mris.ShipperStoreId.ToString(),
+                mris.ResourceId.ToString(CultureInfo.InvariantCulture), _unit, Document.Date,
+                efResourceChild.Value.Equals("1"), efRestType.Value);
+            var ost2 = Store.GetOstatokResource(mris.ShipperStoreId.ToString(),
+                mris.ResourceId.ToString(CultureInfo.InvariantCulture), _unit, Document.Date.AddDays(1),
+                efResourceChild.Value.Equals("1"), efRestType.Value);
 
             efBDOst.Value = ost1;
             efEDOst.Value = ost2;
 
             efBDUnit.Value = efEDUnit.Value = Unit_SymbolRus;
-
         }
 
         /// <summary>
-        /// Очистка остатков на начало и конец дня
+        ///     Очистка остатков на начало и конец дня
         /// </summary>
-        void ClearOstatok()
+        private void ClearOstatok()
         {
             efBDOst.Value = "";
             efEDOst.Value = "";
@@ -1123,23 +1483,10 @@ namespace Kesco.App.Web.Docs.TTN
             efEDUnit.Value = "";
         }
 
-        int GetScale()
-        {
-            int scale = 3;
-
-            if (mris.ResourceId > 0 && mris.UnitId > 0)
-                scale = mris.Resource.GetScale4Unit(mris.UnitId.ToString(), scale, Document.GOPersonDataField.Id);
-
-            //if (sl._Upakovka.Length > 0)
-            //    scale = sl.Resource.GetScale4Unit(sl.Upakovka._Unit, scale);
-
-            return scale;
-        }
-
         /// <summary>
-        /// Контроль превышения остатка на складе
+        ///     Контроль превышения остатка на складе
         /// </summary>
-        void RefreshErCol()
+        private void RefreshErCol()
         {
             if (Document.Date == DateTime.MinValue) return;
             if (mris.ShipperStoreId == 0) return;
@@ -1154,136 +1501,5 @@ namespace Kesco.App.Web.Docs.TTN
         }
 
         #endregion
-
-        /// <summary>
-        /// Заполнение ставки НДС из накладной
-        /// </summary>
-        /// <param name="res">Ресурс</param>
-        private void FillSpecNDSByParentResource(Resource res)
-        {
-
-            if (res != null && Document.PostavschikDataField.Value.ToString().Length > 0)
-            {
-                var shipper = new Person(ParentPage.ShipperField.Value);
-                //var shipper = GetObjectById(typeof(Person), ParentPage.ShipperField.Value) as Person;
-                if (shipper != null && shipper.RegionID.Equals(RegionRussia))
-                {
-                    mris.StavkaNDSId = res.NDS.Equals("1") ? 4 : 3;
-                    efStavkaNDS.Value = mris.StavkaNDSId.ToString();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Отображает диалоговое окно выбора вида расчета
-        /// </summary>
-        /// <param name="name">Название изменяемого поля</param>
-        /// <param name="value">Новое значение изменяемого поля</param>
-        /// <param name="ndx">Индекс</param>
-        void DialogCostRecalc(string name, string value, string ndx)
-        {
-            ShowConfirm(Resx.GetString("TTN_msgNDSSUM"), Resx.GetString("TTN_msgChoiceCalculationType"), Resx.GetString("QSBtnYes"), Resx.GetString("QSBtnNo")
-                , "dialogRecalc('DialogCostRecalc_Yes','" + name + "','" + value + "','" + ndx + "');"
-                , "dialogRecalc('DialogCostRecalc_No','" + name + "','" + value + "','" + ndx + "');"
-                , null, null);
-        }
-
-        /// <summary>
-        /// Отображает диалоговое окно выбора типа перерасчета
-        /// </summary>
-        /// <param name="name">Название изменяемого поля</param>
-        /// <param name="value">Новое значение изменяемого поля</param>
-        /// <param name="ndx">Индекс</param>
-        void DialogRecalc(string name, string value, string ndx)
-        {
-            var helpText = string.Format(@"
-            Нажмите:<br>
-					<b>{0}</b> - {1};
-					<b>{2}</b> - {3};
-					<b>{4}</b> - {5};
-					<b>{6}</b> - {7}",
-                "OK",
-                Resx.GetString("TTN_msgOKInfo"),
-                Resx.GetString("QSBtnRecalc"),
-                Resx.GetString("TTN_msgRecalcInfo"),
-                Resx.GetString("QSBtnCancel"),
-                Resx.GetString("TTN_msgCancel"),
-                Resx.GetString("QSBtnChange"),
-                Resx.GetString("TTN_msgChange")
-                );
-
-            ShowRecalc(helpText, Resx.GetString("TTN_msgOKInfo"), "ОК", Resx.GetString("QSBtnRecalc"), Resx.GetString("QSBtnCancel"), Resx.GetString("TTN_msgChange")
-                , "dialogRecalc('DialogRecalc_Yes','" + name + "','" + value + "','" + ndx + "');"
-                , "dialogRecalc('DialogRecalc_Recalc','" + name + "','" + value + "','" + ndx + "');"
-                , "dialogRecalc('DialogRecalc_No','" + name + "','" + value + "','" + ndx + "');"
-                , "dialogRecalc('DialogRecalc_Change','" + name + "','" + value + "','" + ndx + "');"
-                , null, 500);
-        }
-
-        /// <summary>
-        /// Обработка клиентских команд
-        /// </summary>
-        /// <param name="cmd">Команды</param>
-        /// <param name="param">Параметры</param>
-        protected override void ProcessCommand(string cmd, NameValueCollection param)
-        {
-            switch (cmd)
-            {
-                case "RefreshData":
-                    RefreshData();
-                    break;
-                case "SaveMris":
-                    SaveData();
-                    break;
-                case "DeleteData":
-                    DeleteData();
-                    break;
-                case "DialogCostRecalc_Yes":
-                    double d_kol = (mris.Count > 0 && !mris.Count.Equals("0")) ? mris.Count : 1;
-
-				    decimal _costOutNDS = mris.CostOutNDS;
-				    decimal _summaOutNDS = 0;
-				    decimal _summaNDS = 0;
-				    decimal _vsego = 0;
-                    var stavka = mris.StavkaNDS;
-                    decimal prst = (decimal)stavka.Величина * 100;
-                    int scale = Document != null && !Document.Unavailable ? Document.CurrencyScale : 2;
-
-				    _vsego = Lib.ConvertExtention.Convert.Round((decimal)(d_kol*(double)_costOutNDS), scale);
-				    _summaNDS = Lib.ConvertExtention.Convert.Round(_vsego/(100+prst)*prst, scale);
-				    _summaOutNDS = _vsego - _summaNDS;
-				    _costOutNDS = Lib.ConvertExtention.Convert.Round((decimal)((double)_summaOutNDS/d_kol), scale * 2);
-
-                    var maxscale = mris.Resource.GetScale4Unit(efUnit.Value, 0, Document.GOPersonDataField.Id);
-				    mris.Count=d_kol; efCount.Value = Lib.ConvertExtention.Convert.Decimal2Str((decimal)mris.Count, maxscale);
-
-                    mris.CostOutNDS = _costOutNDS; efCostOutNDS.Value = Lib.ConvertExtention.Convert.Decimal2Str(mris.CostOutNDS, scale * 2);
-                    mris.SummaOutNDS = Lib.ConvertExtention.Convert.Round(_summaOutNDS, scale); efSummaOutNDS.Value = Lib.ConvertExtention.Convert.Decimal2Str(mris.SummaOutNDS, scale);
-                    mris.SummaNDS = Lib.ConvertExtention.Convert.Round(_summaNDS, scale); efSummaNDS.Value = Lib.ConvertExtention.Convert.Decimal2Str(mris.SummaNDS, scale);
-                    mris.Vsego = Lib.ConvertExtention.Convert.Round(_vsego, scale); efVsego.Value = Lib.ConvertExtention.Convert.Decimal2Str(mris.Vsego, scale);
-                    break;
-                case "DialogCostRecalc_No":
-                    mris.Recalc(param["value"], param["ndx"], param["name"], "0", Scale);
-                    break;
-                case "DialogRecalc_Yes":
-                    mris.Recalc(param["value"], param["ndx"], param["name"], "0", Scale);
-                    break;
-                case "DialogRecalc_Recalc":
-                    mris.Recalc(param["value"], param["ndx"], param["name"], "1", Scale);
-                    break;
-                case "DialogRecalc_No":
-                    mris.Recalc(param["value"], param["ndx"], param["name"], "2", Scale);
-                    break;
-                case "DialogRecalc_Change":
-                    mris.Recalc(param["value"], param["ndx"], param["name"], "3", Scale);
-                    break;
-            }
-        }
-        
-        /// <summary>
-        ///     Задание ссылки на справку
-        /// </summary>
-        protected override string HelpUrl { get; set; }
-
     }
 }
