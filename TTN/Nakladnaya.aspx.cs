@@ -52,6 +52,11 @@ namespace Kesco.App.Web.Docs.TTN
         /// </summary>
         public Dictionary<string, string> _qsParams = new Dictionary<string, string>();
 
+        public override bool DocEditable
+        {
+            get { return base.DocEditable && !Document.IsCorrected; }
+        }
+
         public Kesco.Lib.Entities.Documents.EF.Trade.TTN Document
         {
             get { return Doc as Kesco.Lib.Entities.Documents.EF.Trade.TTN; }
@@ -397,8 +402,8 @@ namespace Kesco.App.Web.Docs.TTN
                     selectVagon.OnClick = "javascript:cmd('cmd','SelectVagon');";
                 }
             }
-            if (Doc.DocId != 0)
-                Shipper.WeakList = DocPersons.GetDocsPersonsByDocId(Doc.DocId).Select(o => o.PersonId.ToString()).ToList();
+            //if (Doc.DocId != 0)
+            //    Shipper.WeakList = DocPersons.GetDocsPersonsByDocId(Doc.DocId).Select(o => o.PersonId.ToString()).ToList();
 
         }
 
@@ -730,7 +735,7 @@ namespace Kesco.App.Web.Docs.TTN
             addFactUsl.Text = Resx.GetString("TTN_btnAddService") + "&nbsp;(Ins)";
             addResource.Text = Resx.GetString("TTN_bntAddResource") + "&nbsp;(Ins)";
 
-            CorrectableTtn.IsDisabled = !base.DocEditable || !CorrectableFlag.Checked;
+            CorrectableTtn.IsDisabled = !DocEditable || !CorrectableFlag.Checked;
             CorrectableTtn.IsRequired = (CorrectableFlag.Value == "1");
             itogTable.Visible = !Doc.IsNew && (trServices.Visible || trProduct.Visible);
             RenderProductSelectPanel.Visible = !Doc.IsNew && (trServices.Visible || trProduct.Visible);
@@ -738,7 +743,7 @@ namespace Kesco.App.Web.Docs.TTN
             // проверить, вызывается 2 раза! уже есть вызов из DocPage на OnInit
             //SetControlProperties();
 
-            if (!base.DocEditable)
+            if (!DocEditable)
             {
                 if (!CorrectableFlag.Checked)
                     Hide("divCorrectable");
@@ -915,9 +920,9 @@ namespace Kesco.App.Web.Docs.TTN
         /// </summary>
         protected override void SetControlProperties()
         {
-            CorrectableFlag.IsReadOnly = !base.DocEditable;
+            CorrectableFlag.IsReadOnly = !DocEditable;
             CorrectableTtn.IsReadOnly = false;
-            CorrectableTtn.IsDisabled = !(base.DocEditable && CorrectableFlag.Checked);
+            CorrectableTtn.IsDisabled = !(DocEditable && CorrectableFlag.Checked);
 
             divShipperToGo.Disabled = !DocEditable;
             divPayerToGp.Disabled = !DocEditable;
@@ -926,7 +931,7 @@ namespace Kesco.App.Web.Docs.TTN
 
             MrisButtonPanel.Visible = addFactUsl.Visible = selectVagon.Visible = DocEditable;
             DBSShipperStore.IsReadOnly = DBSPayerStore.IsReadOnly = !DocEditable;
-            efMonthOfResources.IsReadOnly = !base.DocEditable || CorrectableFlag.Checked;
+            efMonthOfResources.IsReadOnly = !DocEditable || CorrectableFlag.Checked;
 
             imgGoAddress.Visible = imgGpAddress.Visible = imgShipperAddress.Visible = imgPayerAddress.Visible = DocEditable;
 
@@ -956,7 +961,7 @@ namespace Kesco.App.Web.Docs.TTN
                     efMonthOfResources.IsReadOnly = false;
             }
 
-            if (!base.DocEditable)
+            if (!DocEditable)
             {
                 if (Notes.Value == "") Hide("divNotes");
 
@@ -3963,8 +3968,8 @@ namespace Kesco.App.Web.Docs.TTN
                         //else
                         //    w.Write(" #" + Document.Id);
 
-                        if (Document.Number.Length > 0) w.Write(" № " + Document.Number);
-                        if (Document.Date != DateTime.MinValue) w.Write(" от " + Document.Date.ToString("dd.MM.yyyy"));
+                        if (Document.CorrectingSequelDoc.Number.Length > 0) w.Write(" № " + Document.CorrectingSequelDoc.Number);
+                        if (Document.CorrectingSequelDoc.Date != DateTime.MinValue) w.Write(" от " + Document.CorrectingSequelDoc.Date.ToString("dd.MM.yyyy"));
 
                         RenderLinkEnd(w);
                     }
@@ -3989,7 +3994,8 @@ namespace Kesco.App.Web.Docs.TTN
                 var fl = Document.DocSigns.Any(sign => sign.EmployeeId.ToString() == d.Kurator.Id);
                 if (fl) { return ""; }
 
-                w.Write(Resx.GetString("TTN_msgNotSignedCurator"));
+                w.Write(IsRusLocal ? Document.TypeDocRu : Document.TypeDocEn);
+                w.Write(" " + Resx.GetString("TTN_msgNotSignedCurator"));
 
                 return w.ToString();
             }
