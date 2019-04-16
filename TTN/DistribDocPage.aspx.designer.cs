@@ -22,13 +22,13 @@ namespace Kesco.App.Web.Docs.TTN {
         protected global::Kesco.Lib.Web.Controls.V4.Div divTitle;
         
         /// <summary>
-        /// efShipper элемент управления.
+        /// efShipperPayer элемент управления.
         /// </summary>
         /// <remarks>
         /// Автоматически создаваемое поле.
         /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
         /// </remarks>
-        protected global::Kesco.Lib.Web.DBSelect.V4.DBSPerson efShipper;
+        protected global::Kesco.Lib.Web.DBSelect.V4.DBSPerson efShipperPayer;
         
         /// <summary>
         /// efResource элемент управления.

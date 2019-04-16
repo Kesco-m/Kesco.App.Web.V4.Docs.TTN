@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -16,7 +14,6 @@ using Kesco.Lib.Entities.Documents;
 using Kesco.Lib.Entities.Documents.EF;
 using Kesco.Lib.Entities.Documents.EF.Dogovora;
 using Kesco.Lib.Entities.Documents.EF.Trade;
-using Kesco.Lib.Entities.Persons;
 using Kesco.Lib.Entities.Persons.PersonOld;
 using Kesco.Lib.Entities.Resources;
 using Kesco.Lib.Entities.Stores;
@@ -44,7 +41,7 @@ namespace Kesco.App.Web.Docs.TTN
         /// <summary>
         ///     Задание ссылки на справку
         /// </summary>
-        protected override string HelpUrl { get; set; }
+        public override string HelpUrl { get; set; }
 
         /// <summary>
         ///     Событие загрузки страницы
@@ -341,7 +338,7 @@ namespace Kesco.App.Web.Docs.TTN
                 var shipper = ParentPage.GetObjectById(typeof(PersonOld), Document.GOPersonField.Value.ToString()) as PersonOld;
                 if (shipper != null && shipper.RegionID.Equals(RegionRussia))
                 {
-                    mris.StavkaNDSId = res.NDS.Equals("1") ? 4 : 3;
+                    mris.StavkaNDSId = res.NDS.Equals("1") ? 4 : 10;
                     efStavkaNDS.Value = mris.StavkaNDSId.ToString();
                 }
             }
@@ -690,6 +687,11 @@ namespace Kesco.App.Web.Docs.TTN
             {
                 ntf.Add(Resx.GetString("TTN_ntfWarehouseNotMatchSupplier"), NtfStatus.Error);
             }
+
+            if (!s.IsAlive(Document.Date))
+            {
+                ntf.Add(Resx.GetString("STORE_IsNotActual").ToLower(), NtfStatus.Error);
+            }
         }
 
         private void StorePayer_OnRenderNtf(object sender, Ntf ntf)
@@ -754,6 +756,12 @@ namespace Kesco.App.Web.Docs.TTN
             {
                 ntf.Add(Resx.GetString("TTN_ntfWarehouseNotMatchPayer"), NtfStatus.Error);
             }
+
+            if (!s.IsAlive(Document.Date))
+            {
+                ntf.Add(Resx.GetString("STORE_IsNotActual").ToLower(), NtfStatus.Error);
+            }
+
         }
 
         private void Resource_OnRenderNtf(object sender, Ntf ntf)
@@ -858,6 +866,7 @@ namespace Kesco.App.Web.Docs.TTN
             efStoreShipper.Filter.ManagerId.Value = Document.PostavschikField.Value.ToString();
             efStoreShipper.Filter.StoreTypeId.CompanyHowSearch = "0";
             efStoreShipper.Filter.StoreTypeId.Value = "-1,21,22,23";
+            efStoreShipper.Filter.ValidAt.Value = Document.Date == DateTime.MinValue ? "" : Document.Date.ToString("yyyyMMdd");
         }
 
         private void StorePayer_BeforeSearch(object sender)
@@ -865,6 +874,7 @@ namespace Kesco.App.Web.Docs.TTN
             efStorePayer.Filter.ManagerId.Value = Document.PlatelschikField.Value.ToString();
             efStorePayer.Filter.StoreTypeId.CompanyHowSearch = "0";
             efStorePayer.Filter.StoreTypeId.Value = "-1,21,22,23";
+            efStorePayer.Filter.ValidAt.Value = Document.Date == DateTime.MinValue ? "" : Document.Date.ToString("yyyyMMdd");
         }
         
         /// <summary>
@@ -884,6 +894,7 @@ namespace Kesco.App.Web.Docs.TTN
         private void StavkaNDS_BeforeSearch(object sender)
         {
             efStavkaNDS.Filter.TerritoryCode = RegionRussia;
+            efStavkaNDS.Filter.ValidAt.Value = Document.Date == DateTime.MinValue ? "" : Document.Date.ToString("yyyyMMdd");
         }
 
         #endregion
@@ -1226,7 +1237,7 @@ namespace Kesco.App.Web.Docs.TTN
                 IconJQueryUI = ButtonIconsEnum.Delete,
                 Width = 105,
                 OnClick = string.Format("v4_showConfirm('{0}','{1}','{2}','{3}','{4}', null);",
-                    string.Format("{0} {1}", Resx.GetString("msgDeleteConfirm"), mris.ResourceRus),
+                    string.Format("{0} «{1}»", Resx.GetString("msgDeleteConfirm"), HttpUtility.HtmlEncode(mris.ResourceRus)),
                     Resx.GetString("errDoisserWarrning"),
                     Resx.GetString("CONFIRM_StdCaptionYes"),
                     Resx.GetString("CONFIRM_StdCaptionNo"),
@@ -1281,6 +1292,17 @@ namespace Kesco.App.Web.Docs.TTN
 
                 var isNew = mris.Id.IsNullEmptyOrZero(); 
                 mris.Save(false);
+
+                if (Document.PositionMris != null) Document.PositionMris.ForEach(delegate(Mris p)
+                {
+                    if (p.ShipperStoreId != mris.ShipperStoreId || p.PayerStoreId != mris.PayerStoreId)
+                    {
+                        p.ShipperStoreId = mris.ShipperStoreId;
+                        p.PayerStoreId = mris.PayerStoreId;
+                        p.Save(false);
+                    }
+                });
+
                 JS.Write("parent.resources_Records_Save('{0}','{1}','{2}');", ctrlFocus, reloadParentForm, isNew);
             }
         }

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Collections.Specialized;
 using System.Data;
-using System.Data.SqlClient;
 using System.Web;
 using Kesco.Lib.BaseExtention.Enums.Controls;
 using Kesco.Lib.DALC;
@@ -215,11 +214,11 @@ namespace Kesco.App.Web.Docs.TTN
 
             Entity = mris;
 
-            efShipper.Value = ParentPage.ShipperField.Value;
+            efShipperPayer.Value = TypeNabor ? ParentPage.PayerField.Value : ParentPage.ShipperField.Value;
             efResource.Value = mris.Resource.Id;
             efUnit.Value = mris.Unit.Id;
-            efResidence.Value = mris.ShipperStore.Residence.Id;
-            efStore.Value = mris.ShipperStore.Id;
+            efResidence.Value = TypeNabor ? mris.PayerStore.Residence.Id : mris.ShipperStore.Residence.Id;
+            efStore.Value = TypeNabor ? mris.PayerStore.Id : mris.ShipperStore.Id;
 
             base.EntityFieldInit();
         }
@@ -863,6 +862,6 @@ namespace Kesco.App.Web.Docs.TTN
         /// <summary>
         ///     Задание ссылки на справку
         /// </summary>
-        protected override string HelpUrl { get; set; }
+        public override string HelpUrl { get; set; }
     }
 }

@@ -9,7 +9,6 @@ using Kesco.Lib.Web.DBSelect.V4;
 using Kesco.Lib.Entities.Stores;
 using Kesco.Lib.BaseExtention.Enums.Controls;
 using Kesco.Lib.Entities.Documents;
-using Kesco.Lib.Entities.Link;
 using Kesco.Lib.Entities.Persons.PersonOld;
 using Kesco.Lib.Entities.Resources;
 using Item = Kesco.Lib.Entities.Item;
@@ -378,6 +377,9 @@ namespace Kesco.App.Web.Docs.TTN
             ClientScripts.SendSetInnerHtml(_page, _prefix + Nakladnaya.suffixTitle, GetTitle());
         }
 
+        /// <summary>
+        /// Установки видимости контролов
+        /// </summary>
         public void UpdateFieldVisibility()
 	    {
             if (string.IsNullOrEmpty(_person.Value))

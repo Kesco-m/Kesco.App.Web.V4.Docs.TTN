@@ -20,13 +20,13 @@
             <div id="Div2" class="predicate_block">
                 <div class="label"><%=Resx.GetString("lblShipperStore")%>:</div>
                 <v4dbselect:DBSStore ID="efShipperStore" runat="server" Width="300px" CLID="18" IsAlwaysAdvancedSearch="True" NextControl="efStorePayer"
-                                     AutoSetSingleValue="True" CSSClass="aligned_control"/>
+                                     AutoSetSingleValue="True" CSSClass="aligned_control" IsReadOnly="true"/>
             </div>
         
             <div id="Div3" class="predicate_block">
                 <div class="label"><%=Resx.GetString("lblPayerStore")%>:</div>
                 <v4dbselect:DBSStore ID="efPayerStore" runat="server" Width="300px" CLID="18" IsAlwaysAdvancedSearch="True" NextControl="efCost"
-                                      AutoSetSingleValue="True" CSSClass="aligned_control"/>
+                                      AutoSetSingleValue="True" CSSClass="aligned_control" IsReadOnly="true"/>
             </div>    
         
             <hr/>

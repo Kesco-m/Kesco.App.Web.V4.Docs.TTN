@@ -17,7 +17,7 @@ namespace TTN
     public partial class testbind : EntityPage
     {
         protected Mris mris;
-        protected override string HelpUrl { get; set; }
+        public override string HelpUrl { get; set; }
 
         protected void Page_Load(object sender, EventArgs e)
         {

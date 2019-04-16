@@ -10,7 +10,6 @@ using Kesco.Lib.BaseExtention.Enums.Controls;
 using Kesco.Lib.BaseExtention.Enums.Docs;
 using Kesco.Lib.DALC;
 using Kesco.Lib.Entities.Documents.EF.Trade;
-using Kesco.Lib.Entities.Persons;
 using Kesco.Lib.Entities.Persons.PersonOld;
 using Kesco.Lib.Entities.Resources;
 using Kesco.Lib.Log;
@@ -37,7 +36,7 @@ namespace Kesco.App.Web.Docs.TTN
         /// <summary>
         ///     Задание ссылки на справку
         /// </summary>
-        protected override string HelpUrl { get; set; }
+        public override string HelpUrl { get; set; }
 
         /// <summary>
         ///     Событие загрузки страницы
@@ -260,7 +259,6 @@ namespace Kesco.App.Web.Docs.TTN
         /// <param name="param">Параметры</param>
         protected override void ProcessCommand(string cmd, NameValueCollection param)
         {
-            var messId = "";
             switch (cmd)
             {
                 case "RefreshData":

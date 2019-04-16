@@ -83,10 +83,6 @@ namespace Kesco.App.Web.Docs.TTN
         private TextBox GoAddress = new TextBox();
         private TextBox GpAddress = new TextBox();
 
-        //Массив всех элементов управления-полей формы
-        //private V4Control[] _ctrls;
-
-
         // итоговые значения табличных полей
         public decimal[,] ItogArray = new decimal[3, 3];
 
@@ -95,10 +91,17 @@ namespace Kesco.App.Web.Docs.TTN
             get { return Shipper; }
         }
 
+        public DBSPerson PayerField
+        {
+            get { return Payer; }
+        }
+
         /// <summary>
         ///     Задание ссылки на справку
         /// </summary>
-        protected override string HelpUrl { get; set; }
+        public override string HelpUrl { get; set; }
+
+        public override int LikeId { get; set; }
 
         public DBSStore ShipperStoreField
         {
@@ -349,6 +352,8 @@ namespace Kesco.App.Web.Docs.TTN
         public Nakladnaya()
         {
             HelpUrl = "hlp/help.htm?id=1";
+            LikeId = 2;
+            InterfaceVersion = "v1";
         }
         
         #region Initialization, binding
@@ -372,17 +377,7 @@ namespace Kesco.App.Web.Docs.TTN
         /// </summary>
         private void BindControls()
         {
-            if (Document.PositionMris != null && Document.PositionMris.Count > 0)
-            {
-                if (Document.PositionMris[0].ShipperStoreId > 0)
-                {
-                    DBSShipperStore.Value = Document.PositionMris[0].ShipperStoreId.ToString();
-                }
-                if (Document.PositionMris[0].PayerStoreId > 0)
-                {
-                    DBSPayerStore.Value = Document.PositionMris[0].PayerStoreId.ToString();
-                }
-            }
+            SetStoreValueByFirstPosition();
 
             if (rbProductSelect.Value == string.Empty)
             {
@@ -408,53 +403,66 @@ namespace Kesco.App.Web.Docs.TTN
         }
 
         /// <summary>
+        /// Биндинг контролов
+        /// </summary>
+        private void SetStoreValueByFirstPosition()
+        {
+            if (Document.PositionMris != null && Document.PositionMris.Count > 0)
+            {
+                if (Document.PositionMris[0].ShipperStoreId > 0)
+                {
+                    DBSShipperStore.Value = Document.PositionMris[0].ShipperStoreId.ToString();
+                }
+                if (Document.PositionMris[0].PayerStoreId > 0)
+                {
+                    DBSPayerStore.Value = Document.PositionMris[0].PayerStoreId.ToString();
+                }
+            }
+        }
+
+        /// <summary>
         /// Установка плательщика и поставщика для новой ТТН по договору
         /// </summary>
         private void SetInitValue()
         {
-            if (Doc.IsNew || Doc.DataUnavailable)
+            if (!Doc.IsNew && !Doc.DataUnavailable) return;
+            if (!CurrentPerson.IsNullEmptyOrZero())
             {
-                if (!CurrentPerson.IsNullEmptyOrZero())
+                switch (Docdir)
                 {
-                    switch (Docdir)
+                    case DocDirs.In:
+                        Document.PlatelschikField.Value = CurrentPerson;
+                        Payer_Changed(null, null);
+                        _payerPanel.Person_Changed(null, null);
+                        //PlatelschikBS.TryFindSingleValue();
+                        break;
+                    case DocDirs.Out:
+                        Document.PostavschikField.Value = CurrentPerson;
+                        Shipper_Changed(null, null);
+                        _shipperPanel.Person_Changed(null, null);
+                        //if (ttn._Postavschik.Length==0) PostavschikBS.TryFindSingleValue();
+                        break;
+                }
+            }
+            else
+            {
+                var dogovor = ""; var d = 0;
+                foreach (var _bd in Document.BasisDocLinks)
+                {
+                    var bd = new Document(_bd.BaseDocId.ToString());
+
+                    if (bd.DocType == null) continue;
+                    if (bd.DocType.ChildOf(DocTypeEnum.Договор))
                     {
-                        case DocDirs.In:
-                            Document.PlatelschikField.Value = CurrentPerson;
-                            Payer_Changed(null, null);
-                            _payerPanel.Person_Changed(null, null);
-                            //PlatelschikBS.TryFindSingleValue();
-                            break;
-                        case DocDirs.Out:
-                            Document.PostavschikField.Value = CurrentPerson;
-                            Shipper_Changed(null, null);
-                            _shipperPanel.Person_Changed(null, null);
-                            //if (ttn._Postavschik.Length==0) PostavschikBS.TryFindSingleValue();
-                            break;
+                        dogovor = _bd.BaseDocId.ToString();
+                        d++;
                     }
                 }
-                else
-                {
-                    Document bd;
-                    string _dogovor = ""; int d = 0;
-                    foreach (var _bd in Document.BasisDocLinks)
-                    {
-                        bd = new Document(_bd.BaseDocId.ToString());
 
-                        if (bd.DocType == null) continue;
-                        if (bd.DocType.ChildOf(DocTypeEnum.Договор))
-                        {
-                            _dogovor = _bd.BaseDocId.ToString();
-                            d++;
-                        }
-                    }
-
-                    if (d == 1)
-                    {
-                        Contract.Value = _dogovor;
-                        Contract_Changed(null, null);
-                        ShipperOrPayer_Changed(null, null);
-                    }
-                }
+                if (d != 1) return;
+                Contract.Value = dogovor;
+                Contract_Changed(null, null);
+                ShipperOrPayer_Changed(null, null);
             }
         }
 
@@ -706,7 +714,7 @@ namespace Kesco.App.Web.Docs.TTN
             //PaymentDocuments.BeforeSearch += new BeforeSearchEventHandler((object s) => LinkedDoc_BeforeSearch(PaymentDocuments, Invoice));
             //PaymentDocuments.Changed += (s, eargs) => LinkedDoc_Changed1(PaymentDocuments, Invoice);
 
-            RefreshTableCurrentDoc();
+            if (CopyId.IsNullEmptyOrZero()) RefreshTableCurrentDoc();
             if (!Doc.IsNew)
             {
                 RenderNonPanelControlsNtf();
@@ -897,14 +905,6 @@ namespace Kesco.App.Web.Docs.TTN
         protected override void DocumentToControls()
         {
             base.DocumentToControls();
-            Invoice.SelectedItems.Clear();
-            Invoice.SelectedItems.AddRange(Document.GetDocLinksItems(Document.SchetPredField.DocFieldId));
-            Invoice.RefreshRequired = true;
-
-            PaymentDocuments.SelectedItems.Clear();
-            PaymentDocuments.SelectedItems.AddRange(Document.GetDocLinksItems(Document.PlatezhkiField.DocFieldId));
-            PaymentDocuments.RefreshRequired = true;
-
             if (CorrectableFlag.Checked && this.DocEditable)
             {
                 if (FieldsToControlsMapping == null) return;
@@ -988,7 +988,6 @@ namespace Kesco.App.Web.Docs.TTN
                 {
                     Hide("divTransport");
                 }
-
             }
 
             // SetAlwaysReadOnly
@@ -1003,6 +1002,8 @@ namespace Kesco.App.Web.Docs.TTN
 
             GoInfo.IsReadOnly = GoCodeInfo.IsReadOnly = GoStoreInfo.IsReadOnly = true;
             GpInfo.IsReadOnly = GpCodeInfo.IsReadOnly = GpStoreInfo.IsReadOnly = true;
+
+            if (!CopyId.IsNullEmptyOrZero()) SetStoreValueByFirstPosition();
         }
 
         /// <summary>
@@ -1073,6 +1074,7 @@ namespace Kesco.App.Web.Docs.TTN
 
             PaymentDocuments.SelectedItems.Clear();
             PaymentDocuments.SelectedItems.AddRange(Document.GetDocLinksItems(Document.PlatezhkiField.DocFieldId, docId));
+            
         }
 
         /// <summary>
@@ -1182,7 +1184,7 @@ namespace Kesco.App.Web.Docs.TTN
 
                         if (validList.Count > 0)
                         {
-                            RenderErrors(validList);
+                            RenderErrors(validList, "<br/>" + Resx.GetString("TTN_msgEditingNoPossible"));
                         }
                         else
                         {
@@ -1191,12 +1193,13 @@ namespace Kesco.App.Web.Docs.TTN
                     }
                     else
                     {
-                        RenderErrors(validList);
+                        RenderErrors(validList, "<br/>"+Resx.GetString("TTN_msgEditingNoPossible"));
                     }
                     break;
 
                 //Обновление списка товаров
                 case "RefreshResource":
+                    SetStoreValueByFirstPosition();
                     if (param["reloadForm"] == "True")
                     {
                         var isNew = "";
@@ -1230,6 +1233,12 @@ namespace Kesco.App.Web.Docs.TTN
 
                 //Удаление товара
                 case "MrisDelete":
+                    if (!Document.IsNew && Document.PositionMris.Count == 1)
+                    {
+                        ShowMessage(Resx.GetString("TTN_msgLastMrisDelete"), Resx.GetString("errDoisserWarrning") );
+                        break;
+                    }
+                    
                     DeleteMrisPosition(param["MrisId"]);
                     break;
 
@@ -1240,13 +1249,13 @@ namespace Kesco.App.Web.Docs.TTN
 
                 //Добавление услуги
                 case "AddFactUsl":
-                    if (ValidateDocument(out validList))
+                    if (ValidateDocument(out validList, "AddFactUsl"))
                     {
                         AddService(Resx.GetString("TTN_FactUslTitle"), param["PageId"], param["DocId"], param["FactUslId"]);
                     }
                     else
                     {
-                        RenderErrors(validList);
+                        RenderErrors(validList, "<br/>" + Resx.GetString("TTN_msgEditingNoPossible"));
                     }
                     break;
 
@@ -1289,15 +1298,39 @@ namespace Kesco.App.Web.Docs.TTN
                     break;
 
                 case "SelectVagon":
-                    // формирование параметров с ограничениями по ГО/ГП для проекта выбора отправок
-                    string sParams = "";
-                    if ((Document.GOPersonField.Value ?? "").ToString().Length > 0) sParams += "&goperson=" + Document.GOPersonField.Value;
-                    if ((Document.GPPersonField.Value ?? "").ToString().Length > 0) sParams += "&gpperson=" + Document.GPPersonField.Value;
-                    if ((Document.GOPersonWeselField.Value ?? "").ToString().Length > 0) sParams += "&gowesel=" + Document.GOPersonWeselField.Id;
-                    if ((Document.GPPersonWeselField.Value ?? "").ToString().Length > 0) sParams += "&gpwesel=" + Document.GPPersonWeselField.Id;
+                    if (ValidateDocument(out validList))
+                    {
+                        if (DBSShipperStore.IsRequired && DBSShipperStore.Value == "")
+                        {
+                            validList.Add(Resx.GetString("TTN_ntfNotShipperStore"));
+                        }
 
-                    var parameters = string.Format("idpp={0}&idDoc={1}{2}", IDPage , Document.Id, sParams);
-                    ReturnDialogResult.ShowAdvancedDialogSearch(this, "Select_Vagon", "GridResource", Config.delivery_search, parameters, true, 0, 800, 600);
+                        if (DBSPayerStore.IsRequired && DBSPayerStore.Value == "")
+                        {
+                            validList.Add(Resx.GetString("TTN_ntfNotPayerStore"));
+                        }
+
+                        if (validList.Count > 0)
+                        {
+                            RenderErrors(validList, "<br/>" + Resx.GetString("TTN_msgEditingNoPossible"));
+                        }
+                        else
+                        {
+                            // формирование параметров с ограничениями по ГО/ГП для проекта выбора отправок
+                            string sParams = "";
+                            if ((Document.GOPersonField.Value ?? "").ToString().Length > 0) sParams += "&goperson=" + Document.GOPersonField.Value;
+                            if ((Document.GPPersonField.Value ?? "").ToString().Length > 0) sParams += "&gpperson=" + Document.GPPersonField.Value;
+                            if ((Document.GOPersonWeselField.Value ?? "").ToString().Length > 0) sParams += "&gowesel=" + Document.GOPersonWeselField.Id;
+                            if ((Document.GPPersonWeselField.Value ?? "").ToString().Length > 0) sParams += "&gpwesel=" + Document.GPPersonWeselField.Id;
+
+                            var parameters = string.Format("idpp={0}&idDoc={1}{2}", IDPage, Document.Id, sParams);
+                            ReturnDialogResult.ShowAdvancedDialogSearch(this, "Select_Vagon", "GridResource", Config.delivery_search, parameters, true, 0, 800, 600);
+                        }
+                    }
+                    else
+                    {
+                        RenderErrors(validList, "<br/>" + Resx.GetString("TTN_msgEditingNoPossible"));
+                    }
                     break;
 
                 case "OnSelectedVagon":
@@ -1311,7 +1344,7 @@ namespace Kesco.App.Web.Docs.TTN
                     }
                     else
                     {
-                        RenderErrors(validList);
+                        RenderErrors(validList, "<br/>" + Resx.GetString("TTN_msgEditingNoPossible"));
                     }
                     break;
 
@@ -1674,7 +1707,6 @@ namespace Kesco.App.Web.Docs.TTN
             {
                 GridUsl.SetDataSource(null);
                 GridUsl.RefreshGridData();
-                return;
             }
 
             var currentPage = GridUsl.GеtCurrentPage();
@@ -2323,6 +2355,7 @@ namespace Kesco.App.Web.Docs.TTN
                 DBSPayerStore.Filter.ManagerId.Value = Document.PlatelschikField.Value.ToString();
             DBSPayerStore.Filter.StoreTypeId.CompanyHowSearch = "0";
             DBSPayerStore.Filter.StoreTypeId.Value = "-1,21,22,23";
+            DBSPayerStore.Filter.ValidAt.Value = Doc.Date == DateTime.MinValue ? "" : Doc.Date.ToString("yyyyMMdd");
         }
 
         private void Contract_BeforeSearch(DBSDocument ctrl, DBSDocument link)
@@ -3007,6 +3040,11 @@ namespace Kesco.App.Web.Docs.TTN
             {
                 ntf.Add(Resx.GetString("TTN_ntfWarehouseNotMatchSupplier"), NtfStatus.Error);
             }
+
+            if (!s.IsAlive(Document.Date))
+            {
+                ntf.Add(Resx.GetString("STORE_IsNotActual").ToLower(), NtfStatus.Error);
+            }
         }
 
         /// <summary>
@@ -3071,6 +3109,11 @@ namespace Kesco.App.Web.Docs.TTN
             if (s.Id.Length > 0 && !s.Unavailable && !s.ManagerId.Equals(Document.PlatelschikField.Value))
             {
                 ntf.Add(Resx.GetString("TTN_ntfWarehouseNotMatchPayer"), NtfStatus.Error);
+            }
+
+            if (!s.IsAlive(Document.Date))
+            {
+                ntf.Add(Resx.GetString("STORE_IsNotActual").ToLower(), NtfStatus.Error);
             }
         }
 
@@ -3267,6 +3310,8 @@ namespace Kesco.App.Web.Docs.TTN
                 var payer = GetObjectById(typeof(PersonOld), Document.PlatelschikField.Value.ToString()) as PersonOld;
                 if (payer != null && payer.BusinessProjectID > 0) DBSPayerStore.IsRequired = true;
             }
+            DBSShipperStore.RefreshRequired = true;
+            DBSPayerStore.RefreshRequired = true;
         }
 
         protected void GO_Changed(object sender, ProperyChangedEventArgs e)
@@ -3494,16 +3539,18 @@ namespace Kesco.App.Web.Docs.TTN
         /// <param name="e">Аргументы</param>
         protected void ShipperStore_Changed(object sender, ProperyChangedEventArgs e)
         {
-            if (Document.PositionMris != null && Document.PositionMris.Count > 0)
+            if (Document.PositionMris != null && Document.PositionMris.Count > 0 && DBSShipperStore.Value != string.Empty)
             {
-                foreach (var position in Document.PositionMris)
+                Document.PositionMris.ForEach(delegate(Mris p)
                 {
-                    if (DBSShipperStore.Value != string.Empty)
+                    if (p.ShipperStoreId != int.Parse(DBSShipperStore.Value))
                     {
-                        position.ShipperStoreId = int.Parse(DBSShipperStore.Value);
+                        p.ShipperStoreId = int.Parse(DBSShipperStore.Value);
+                        if (!p.Id.IsNullEmptyOrZero()) p.Save(false);
                     }
-                }
+                });
             }
+            DBSShipperStore.RenderNtf();
         }
 
         /// <summary>
@@ -3513,6 +3560,18 @@ namespace Kesco.App.Web.Docs.TTN
         /// <param name="e">Аргументы</param>
         protected void PayerStore_Changed(object sender, EventArgs e)
         {
+            if (Document.PositionMris != null && Document.PositionMris.Count > 0 && DBSPayerStore.Value != string.Empty)
+            {
+                Document.PositionMris.ForEach(delegate(Mris p)
+                {
+                    if (p.PayerStoreId != int.Parse(DBSPayerStore.Value))
+                    {
+                        p.PayerStoreId = int.Parse(DBSPayerStore.Value);
+                        if (!p.Id.IsNullEmptyOrZero()) p.Save(false);
+                    }
+                });
+            }
+
             DBSPayerStore.RenderNtf();
         }
 
@@ -3720,9 +3779,8 @@ namespace Kesco.App.Web.Docs.TTN
 
         #region ProcessCommand
         /// <summary>
-        ///     Добавить товар
+        /// Добавить товар
         /// </summary>
-        /// <param name="form">Название файла формы без расширения</param>
         /// <param name="title">Заголовок</param>
         /// <param name="pageId">Идентификатор вызывающей страницы</param>/// 
         /// <param name="docId">Идентификатор договора</param>/// 
@@ -3735,7 +3793,6 @@ namespace Kesco.App.Web.Docs.TTN
         /// <summary>
         ///     Добавить услугу
         /// </summary>
-        /// <param name="form">Название файла формы без расширения</param>
         /// <param name="title">Заголовок</param>
         /// <param name="pageId">Идентификатор вызывающей страницы</param>/// 
         /// <param name="docId">Идентификатор договора</param>/// 
@@ -3898,10 +3955,23 @@ namespace Kesco.App.Web.Docs.TTN
         void DetailMrisPosition(string mrisId)
         {
             var mris = new Mris(mrisId);
-            lnkSkladFrom.Value = GetLntSkladLink("Shipper", Resx.GetString("TTN_lblSetCost"), mris.ShipperStore.Name, Resx.GetString("TTN_lblResourceConsumption"), mris.Resource.Name, mris.Count.ToString(), mris.Unit.ЕдиницаРус, mrisId);
-            lnkSkladTo.Value = GetLntSkladLink("Payer", Resx.GetString("TTN_lblSetCost"), mris.PayerStore.Name, Resx.GetString("TTN_lblResourceConsumption"), mris.Resource.Name, mris.Count.ToString(), mris.Unit.ЕдиницаРус, mrisId);
 
-            JS.Write("nabor_DialogShow('{0}');", Resx.GetString("TTN_lblChoiceTypeSets"));
+            if (DBSShipperStore.IsRequired && mris.ShipperStore.Id.IsNullEmptyOrZero() ||
+                DBSPayerStore.IsRequired && mris.PayerStore.Id.IsNullEmptyOrZero())
+            {
+                ShowMessage(Resx.GetString("TTN_msgNoStorage"), Resx.GetString("errDoisserWarrning"));
+            }
+            else
+            {
+                lnkSkladFrom.Value = lnkSkladTo.Value = string.Empty;
+                if (!mris.ShipperStore.Id.IsNullEmptyOrZero()) 
+                    lnkSkladFrom.Value = GetLntSkladLink("Shipper", Resx.GetString("TTN_lblSetCost"), mris.ShipperStore.Name, Resx.GetString("TTN_lblResourceConsumption"), mris.Resource.Name, mris.Count.ToString(), mris.Unit.ЕдиницаРус, mrisId);
+
+                if (!mris.PayerStore.Id.IsNullEmptyOrZero()) 
+                    lnkSkladTo.Value = GetLntSkladLink("Payer", Resx.GetString("TTN_lblSetCost"), mris.PayerStore.Name, Resx.GetString("TTN_lblResourceConsumption"), mris.Resource.Name, mris.Count.ToString(), mris.Unit.ЕдиницаРус, mrisId);
+
+                JS.Write("nabor_DialogShow('{0}');", Resx.GetString("TTN_lblChoiceTypeSets"));
+            }
         }
 
         /// <summary>
@@ -3974,29 +4044,6 @@ namespace Kesco.App.Web.Docs.TTN
                         RenderLinkEnd(w);
                     }
                 }
-                return w.ToString();
-            }
-        }
-
-        /// <summary>
-        /// Отрисовка сообщения, если ТТН не подписана куратором договора 
-        /// </summary>
-        /// <returns></returns>
-        public string RenderKuratorSign()
-        {
-            using (var w = new StringWriter())
-            {
-                if (Document.IsNew || Contract.Value == "") return "";
-                var d = GetObjectById(typeof(Dogovor), Contract.Value) as Dogovor;
-                if (d == null || d.Unavailable) return "";
-                if (!d.IsDogovor) return "";
-
-                var fl = Document.DocSigns.Any(sign => sign.EmployeeId.ToString() == d.Kurator.Id);
-                if (fl) { return ""; }
-
-                w.Write(IsRusLocal ? Document.TypeDocRu : Document.TypeDocEn);
-                w.Write(" " + Resx.GetString("TTN_msgNotSignedCurator"));
-
                 return w.ToString();
             }
         }
@@ -4166,7 +4213,7 @@ namespace Kesco.App.Web.Docs.TTN
         {
             base.ValidateDocument(out errors, exeptions);
 
-            if (exeptions.Contains("SaveButton") && Document.PositionMris.Count == 0)
+            if ((exeptions.Contains("SaveButton") || exeptions.Contains("AddFactUsl") || exeptions.Contains("AddSign")) && Document.PositionMris.Count == 0)
             {
                 errors.Add(Resx.GetString("TTN_msgNoMris"));
             }
@@ -4193,14 +4240,8 @@ namespace Kesco.App.Web.Docs.TTN
         {
             var sqlParams = new Dictionary<string, object>();
             var docId = 0;
-            
-            //if (!Doc.IsNew)                               
-            //    docId = int.Parse(Doc.Id);
-            //else if (!CopyId.IsNullEmptyOrZero())
-            //    docId = int.Parse(CopyId);
 
             docId = int.Parse(!CopyId.IsNullEmptyOrZero() ? CopyId : Doc.Id);
-
             sqlParams.Add("@КодДокумента", docId);
 
             return sqlParams;

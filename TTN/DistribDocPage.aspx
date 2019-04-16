@@ -22,9 +22,9 @@
         <div class="marginL">
             <div class="spacer"></div>
             <v4control:Div id="divTitle" runat="server" CSSClass="header"/>
-            <div id="ShipperPanel" class="predicate_block">
+            <div id="ShipperPayerPanel" class="predicate_block">
                 <div class="label" ><%=Resx.GetString("TTN_lblOwherResource")%>:</div>
-                <v4dbselect:DBSPerson ID="efShipper" runat="server" Width="500px" CSSClass="aligned_control" IsReadOnly="True"/>
+                <v4dbselect:DBSPerson ID="efShipperPayer" runat="server" Width="500px" CSSClass="aligned_control" IsReadOnly="True"/>
             </div>
             
         <div id="ResourcePanel" class="predicate_block">
@@ -58,7 +58,7 @@
                 <td><input type="radio" name="g1" onclick="filterGrid(3);" id="rzdkv"/>&nbsp;<label for="rzdkv"><%=Resx.GetString("TTN_lblFilterInvoiceNumber")%></label></td>
 				<td><v4control:TextBox runat="server" ID="efKvitanciya" OnChanged="Kvitanciya_Changed"/></td>
             </tr>
-        </table>        
+        </table>
         
         <div id="divMainTable">
             <% RenderOstatkiTable(Response.Output); %>

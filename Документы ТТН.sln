@@ -1,13 +1,15 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.4
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kesco.Lib.DALC", "Kesco.Lib.DALC\Kesco.Lib.DALC.csproj", "{5F647577-BC44-41DE-AFBE-BC47C91548F1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kesco.Lib.Entities", "Kesco.Lib.Entities\Kesco.Lib.Entities.csproj", "{DEAA04C2-AFB2-4AD0-B161-A5BF6C26A9DB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kesco.Lib.Localization", "Kesco.Lib.Localization\Kesco.Lib.Localization.csproj", "{895BE7DB-796B-40DD-B338-01B9C53F8308}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kesco.Lib.Web.Comet", "Kesco.Lib.Web.Comet\Kesco.Lib.Web.Comet.csproj", "{EB32DBFE-59E0-4F6C-A718-BE9BA708C64F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kesco.Lib.Web.Comet", "Kesco.Lib.Web.Comet\Kesco.Lib.Web.Comet\Kesco.Lib.Web.Comet.csproj", "{EB32DBFE-59E0-4F6C-A718-BE9BA708C64F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kesco.Lib.Web.Controls.V4", "Kesco.Lib.Web.Controls.V4\Kesco.Lib.Web.Controls.V4.csproj", "{C24FDAB8-D076-4F0C-8932-DB8160E4C4EF}"
 EndProject
@@ -21,7 +23,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kesco.Lib.ConvertExtention"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kesco.Lib.BaseExtention", "Kesco.Lib.BaseExtention\Kesco.Lib.BaseExtention.csproj", "{D26C8D93-C51B-4F61-ADA8-8527A18E4C41}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TTN", "TTN\Kesco.App.Web.Docs.TTN.csproj", "{B577D5AA-63C8-4C4A-855D-B7480FD52AC8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TTN", "TTN\TTN.csproj", "{B577D5AA-63C8-4C4A-855D-B7480FD52AC8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -16,7 +16,7 @@
 </head>
 <body>
 <div><%=RenderDocumentHeader()%></div>
-<div class="warning" style="width: 99%; display: table; text-align: right; -ms-word-wrap: normal;"><%=RenderKuratorSign()%></div>
+<div class="warning" style="width: 99%; display: table; text-align: right; -ms-word-wrap: normal;"><%=RenderKuratorSign(Contract.Value)%></div>
 <div class="spacer"></div>
 <div class="v4formContainer">
 <div class="marginL">

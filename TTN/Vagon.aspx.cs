@@ -4,7 +4,6 @@ using System.IO;
 using System.Collections.Specialized;
 using Kesco.Lib.BaseExtention.Enums.Controls;
 using Kesco.Lib.DALC;
-using Kesco.Lib.Entities.Documents;
 using Kesco.Lib.Web.Controls.V4;
 using Kesco.Lib.Web.Controls.V4.Common;
 using Kesco.Lib.Entities.Resources;
@@ -67,7 +66,7 @@ namespace Kesco.App.Web.Docs.TTN
             efNDS.BeforeSearch += StavkaNDS_BeforeSearch;
         }
 
-        protected override string HelpUrl { get; set; }
+        public override string HelpUrl { get; set; }
 
         #region Render
         /// <summary>
