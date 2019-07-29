@@ -10,6 +10,7 @@ using Kesco.Lib.Entities.Resources;
 using Kesco.Lib.Web.Controls.V4.Common;
 using System.Reflection;
 using Kesco.Lib.BaseExtention.BindModels;
+using Kesco.Lib.Entities;
 using Kesco.Lib.Web.Controls.V4;
 
 namespace TTN
@@ -26,5 +27,9 @@ namespace TTN
             
         }
 
+        protected override void EntityInitialization(Entity copy = null)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -3,14 +3,20 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
+using System.Data;
+using System.Diagnostics.Contracts;
 using Kesco.Lib.BaseExtention;
 using Kesco.Lib.Web.Controls.V4;
 using Kesco.Lib.Web.DBSelect.V4;
 using Kesco.Lib.Entities.Stores;
 using Kesco.Lib.BaseExtention.Enums.Controls;
+using Kesco.Lib.BaseExtention.Enums.Docs;
+using Kesco.Lib.DALC;
+using Kesco.Lib.Entities;
 using Kesco.Lib.Entities.Documents;
 using Kesco.Lib.Entities.Persons.PersonOld;
 using Kesco.Lib.Entities.Resources;
+using Kesco.Lib.Web.Settings;
 using Item = Kesco.Lib.Entities.Item;
 
 namespace Kesco.App.Web.Docs.TTN
@@ -127,7 +133,7 @@ namespace Kesco.App.Web.Docs.TTN
 			//_address.OnRenderNtf += (s, ntf) => _page.Address_OnRenderNtf(ntf, _person, _address, _prefix);
 			_store.OnRenderNtf += (s, ntf) => _page.Store_OnRenderNtf(ntf, _person, _current_store, _prefix);
 
-			_store.GetFilter().StoreTypeId.Value = "1,2,3";
+			//_store.GetFilter().StoreTypeId.Value = "1,2,3";
 
 			_info.OnRenderNtf += Info_OnRenderNtf;
 			_store_info.OnRenderNtf += StoreInfo_OnRenderNtf;
@@ -293,28 +299,19 @@ namespace Kesco.App.Web.Docs.TTN
             V4Control[] ctrls = { _person, _transport_node, _notes, _address, _info, _code, _store, _store_info };
             string dataInfo = n.GetSectionHtmlDescription(ctrls);
             _store.IsDisabled = disabledcode;
-            //if (_prefix != "Shipper")
-            //    _page.JS.Write("SetExpandAccordionByControl('{0}_1');", _store.ClientID);
 
 			string strNtfInfo = string.Empty;
 
 			using (StringWriter ntfText = new StringWriter())
 			{
-				//_info.RenderNtf();
 				_info.RenderNtf(ntfText);
-
-				//_code.RenderNtf();
-				//_code.RenderNtf(ntfText);
 
 				foreach (V4Control ctrl in ctrls)
 				{
 					if (null == ctrl) continue;
-
-					//ctrl.RenderNtf();
 					ctrl.RenderNtf(ntfText);
 				}
 
-				//_store_info.RenderNtf();
 				_store_info.RenderNtf(ntfText);
 
 				if (dataInfo.Length > 0 && ntfText.GetStringBuilder().Length > 0)
@@ -365,6 +362,18 @@ namespace Kesco.App.Web.Docs.TTN
             _store.RenderNtf();
 
             ClientScripts.SendSetInnerHtml(_page, _prefix + Nakladnaya.suffixTitle, GetTitle());
+        }
+
+        public void RenderNtf()
+        {
+            OnCurrencyChanged();
+
+            _store.RenderNtf();
+            _store_info.RenderNtf();
+            _info.RenderNtf();
+            _code.RenderNtf();
+            _person.RenderNtf();
+            _address.RenderNtf();
         }
 
         /// <summary>
@@ -460,16 +469,58 @@ namespace Kesco.App.Web.Docs.TTN
                 else
                 {
                     _current_code = p.OKPO;
-                    /*
+                    
                     if (string.IsNullOrEmpty(_store.Value))
                     {
-                        _page.Store_BeforeSearch(_store, _person.Value);
-                        //if (_store.TryFindSingleValue()) _store.BindDocField.Value = _store.Value;
+                        //_page.Store_BeforeSearch(_store, _person.Value);
+                        if (_store.TryFindSingleValue())
+                        {
+                            _store.BindDocField.Value = _store.Value;
+                            Store_Changed(null, null);
+                            _store.RenderNtf();
+                        }
+                        
+                        else
+                        {
+                            if (_prefix == "Go")
+                            {
+                                var sqlParamsSt = new Dictionary<string, object> {
+                                    { "@ДатаДокумента", ((Kesco.Lib.Entities.Documents.EF.Trade.TTN)_page.Doc).Date },
+                                    { "@КодПоставщика", _person.Value },
+                                    { "@КодВалюты", ((Kesco.Lib.Entities.Documents.EF.Trade.TTN)_page.Doc).CurrencyField.Value }
+                                };
+
+                                var st = DBManager.ExecuteScalar(SQLQueries.SELECT_ПоследнийСчетПоставщикаВТТН, CommandType.Text, Config.DS_document, sqlParamsSt);
+
+                                if (st != DBNull.Value)
+                                {
+                                    _store.BindDocField.Value = st.ToString();
+                                    Store_Changed(null, null);
+                                    _store.RenderNtf();
+                                }
+                            }
+                        }
+                        
                     }
-                    */
+
+                    var sqlParams = new Dictionary<string, object> {
+                        { "@КодЛица", _person.BindDocField.Value }
+                    };
+                    var dt = DBManager.GetData(SQLQueries.SELECT_КонтактыЛицаExt, Config.DS_person, CommandType.Text, sqlParams);
+                    if (dt != null && dt.Rows.Count == 1)
+                    {
+                        _address.Value = dt.Rows[0]["Контакт"].ToString();
+                    }
+
+                    if (null != _address.BindDocField)
+                        _address.BindDocField.Value = _address.Value;
+
+
+
                     //var card = p.GetCard(_page.Doc.Date == DateTime.MinValue ? DateTime.Today : _page.Doc.Date);
                     var card = _page.GetCardById(p, _page.Doc.Date == DateTime.MinValue ? DateTime.Today : _page.Doc.Date);
 
+                    /*
                     if (_prefix == "Shipper" || _prefix == "Payer")
                     {
                         if (string.IsNullOrEmpty(_address.Value))
@@ -485,6 +536,7 @@ namespace Kesco.App.Web.Docs.TTN
                                 _address.BindDocField.Value = _address.Value;
                         }
                     }
+                    */
 
                     // Название поставщика/плательщика реквизиты ГО/ГП
                     if (card != null)
@@ -498,6 +550,7 @@ namespace Kesco.App.Web.Docs.TTN
                         var addInfo = GetHtmlPersonDescription(ctrls, ", ");
                         _info.BindDocField.Value += (_info.Value.Length > 0 && addInfo.Length > 0 ? ", " : "") + addInfo;
                     }
+
                 }
             }
 
@@ -513,7 +566,7 @@ namespace Kesco.App.Web.Docs.TTN
         private void Transport_Node_Changed(object sender, ProperyChangedEventArgs args)
 	    {
             if (!_transport_node.Value.IsNullEmptyOrZero())
-                _notes.Value = Document.GetTRWeselLastNote(_transport_node.Value, _page.Doc.TypeID.ToString(), _page.Doc.DocId, (_page.Doc.Date != DateTime.MinValue ? _page.Doc.Date : DateTime.Today));
+                _notes.Value = Document.GetTRWeselLastNote(_transport_node.Value, _page.Doc.TypeId.ToString(), _page.Doc.DocId, (_page.Doc.Date != DateTime.MinValue ? _page.Doc.Date : DateTime.Today));
             BindFieldsByPerson();
 	    }
 
@@ -659,13 +712,23 @@ namespace Kesco.App.Web.Docs.TTN
 
             if (string.IsNullOrEmpty(_code.Value))
             {
-                ntf.Add(n.ControlNtfs.PersonNoCode[_prefix], NtfStatus.Error);
+                ntf.Add(new Notification
+                {
+                    Message = n.ControlNtfs.PersonNoCode[_prefix],
+                    Status = NtfStatus.Error,
+                    DashSpace = true
+                });
                 return;
             }
 
             if (_code.Value != _current_code)
             {
-                ntf.Add(n.ControlNtfs.PersonCode[_prefix], NtfStatus.Error);
+                ntf.Add(new Notification
+                {
+                    Message = n.ControlNtfs.PersonNoCode[_prefix],
+                    Status = NtfStatus.Error,
+                    DashSpace = true
+                });
             }
         }
         #endregion

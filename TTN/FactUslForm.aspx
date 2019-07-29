@@ -9,12 +9,17 @@
     <title></title>
     <link rel="stylesheet" type="text/css" href="Kesco.Nakladnaya.css" />
 </head>
-<script src="Kesco.FactUsl.js" type="text/javascript"></script>
+<script src="Kesco.FactUsl.js?v=1" type="text/javascript"></script>
 <body>
 <div class="marginD"><%=RenderDocumentHeader()%></div>    
     <div class="v4formContainer">
         <div class="marginL">
             
+        <div id="OrderPanel" class="predicate_block" runat="server">
+            <div class="label"><%=Resx.GetString("TTN_lblOrder")%>:</div>
+            <v4control:DropDownList ID="efOrder" runat="server" Width="350px" CSSClass="aligned_control" NextControl="btnSave" IsReadOnly="True"/>
+        </div>
+
         <div id="ResourcePanel" class="predicate_block">
             <div class="label"><%=Resx.GetString("lblService")%>:</div>
             <v4dbselect:DBSResource ID="efResource" runat="server" Width="350px" CLID="25" IsAlwaysAdvancedSearch="True" IsRequired="True" NextControl="efUnitAdv"

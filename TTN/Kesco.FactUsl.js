@@ -16,7 +16,12 @@ if (parent != null) parent.frameService_progressBarShow(0);
 $(document).ready(function () {
     window.v4_save = function () {
         $("#btnSave").focus();
-         cmd('cmd', 'SaveData');
+        cmdasync('cmd', 'SaveAndClose');
     };
+
+    setTimeout(function () {
+        $('#efResource_0').focus();
+        $('#efResource_0').select();
+    }, 10);
 
 });

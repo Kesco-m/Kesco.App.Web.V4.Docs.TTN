@@ -4,6 +4,7 @@ using System.IO;
 using System.Collections.Specialized;
 using Kesco.Lib.BaseExtention.Enums.Controls;
 using Kesco.Lib.DALC;
+using Kesco.Lib.Entities;
 using Kesco.Lib.Web.Controls.V4;
 using Kesco.Lib.Web.Controls.V4.Common;
 using Kesco.Lib.Entities.Resources;
@@ -56,12 +57,14 @@ namespace Kesco.App.Web.Docs.TTN
 
             base.EntityFieldInit();
         }
+
+        protected override void EntityInitialization(Entity copy = null)
+        {
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
-            efPayerStore.Filter.StoreTypeId.Add("22");
-            efPayerStore.Filter.StoreTypeId.Add("23");
-            efPayerStore.Filter.StoreTypeId.Add("21");
-            efPayerStore.Filter.StoreTypeId.Add("-1");
+            efPayerStore.Filter.IsWarehouseType.Enabled = true;
 
             efNDS.BeforeSearch += StavkaNDS_BeforeSearch;
         }

@@ -170,6 +170,10 @@ namespace Kesco.App.Web.Docs.TTN
             HelpUrl = string.Empty;
         }
 
+        protected override void EntityInitialization(Entity copy = null)
+        {
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (!V4IsPostBack)

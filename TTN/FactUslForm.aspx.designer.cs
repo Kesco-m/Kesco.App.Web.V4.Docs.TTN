@@ -13,6 +13,24 @@ namespace Kesco.App.Web.Docs.TTN {
     public partial class FactUslForm {
         
         /// <summary>
+        /// OrderPanel элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl OrderPanel;
+        
+        /// <summary>
+        /// efOrder элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.DropDownList efOrder;
+        
+        /// <summary>
         /// efResource элемент управления.
         /// </summary>
         /// <remarks>

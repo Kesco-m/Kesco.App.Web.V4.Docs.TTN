@@ -1,4 +1,5 @@
-﻿/** Объект - контроллер формы. Содержит реализации методов используемых на странице. */
+﻿var SetFocusFirstElement = true;
+/** Объект - контроллер формы. Содержит реализации методов используемых на странице. */
 var Nakladnaya = {
     /**Эти строковые ресурсы передаются в клиентское приложение от Вэб-сервера */
     /*
@@ -21,7 +22,8 @@ var Nakladnaya = {
             activate: Nakladnaya.sectionActivate,
             beforeActivate: Nakladnaya.sectionBeforeActivate,
             create: Nakladnaya.accordionCreate,
-            heightStyle: "content"
+            heightStyle: "content",
+            active: false
         });
         $("#accordion a").click(function (e) { e.stopPropagation(); });
         
@@ -69,13 +71,15 @@ var Nakladnaya = {
         if (ui.newPanel.length) {
             var required = $("input.v4s_required", ui.newPanel);
 
-            if (required.length)
-                required[0].focus();
-            else {
-                //var to_focus = $("input:text", ui.newPanel).filter(function () {return !this.value;}).first();
-                var to_focus = $("input:text", ui.newPanel).first();
-                if (to_focus.length) to_focus[0].focus();
+            if (SetFocusFirstElement) {
+                if (required.length)
+                    required[0].focus();
+                else {
+                    var to_focus = $("input:text", ui.newPanel).first();
+                    if (to_focus.length) to_focus[0].focus();
+                }
             }
+            SetFocusFirstElement = true;
         }
     }
 
@@ -133,6 +137,11 @@ function accordionCloseAll() {
     $("#accordion").accordion({ active: false });
 }
 
+function accordionActive(n, focus) {
+    if (focus == 'false') SetFocusFirstElement = false;
+    $("#accordion").accordion({ active: n });
+}
+
 $(window).resize(function () {
     setIframeHeight();
     setIframeVagonHeight();
@@ -157,7 +166,7 @@ function resources_RecordsAdd(titleForm, pageId, docId, resourceId) {
     }
 
     var idContainer = "divResourceAdd";
-    var width = 571; var height = 490;
+    var width = 571; var height = 501;
 
     if (null == resources_RecordsAdd.form) {
         var onOpen = function () {
@@ -212,7 +221,7 @@ function services_RecordsAdd(titleForm, pageId, docId, serviceId) {
     }
 
     var idContainer = "divServiceAdd";
-    var width = 555; var height = 350;
+    var width = 565; var height = 380;
 
     if (null == services_RecordsAdd.form) {
         var onOpen = function () {
@@ -254,16 +263,16 @@ function services_Records_Close(ifrIdp, addFocus) {
 
 // ------------------------------------------------------------------------------------------------------------
 
-function resources_Records_Save(ctrlFocus, reload, isnew) {
-    cmd("cmd", "RefreshResource", "ctrlFocus", ctrlFocus, "ReloadForm", reload, "IsNew", isnew);
+function resources_Records_Save(ctrlFocus, reload, close, isnew) {
+    cmdasync("cmd", "RefreshResource", "ctrlFocus", ctrlFocus, "ReloadForm", reload, "CloseForm", close, "IsNew", isnew);
 }
 
-function factUsl_Records_Save(ctrlFocus, reload, isnew) {
-    cmd("cmd", "RefreshFactUsl", "ctrlFocus", ctrlFocus, "ReloadForm", reload, "IsNew", isnew);
+function factUsl_Records_Save(ctrlFocus, reload, close, isnew) {
+    cmdasync("cmd", "RefreshFactUsl", "ctrlFocus", ctrlFocus, "ReloadForm", reload, "CloseForm", close, "IsNew", isnew);
 }
 
 function vagon_Records_Save(reload) {
-    cmd("cmd", "RefreshResourceByVagon", "ReloadForm", reload);
+    cmdasync("cmd", "RefreshResourceByVagon", "ReloadForm", reload);
 }
 
 function mris_edit(id) {
@@ -271,11 +280,11 @@ function mris_edit(id) {
 }
 
 function mris_copy(id) {
-    cmd("cmd", "MrisCopy", "MrisId", id);
+    cmdasync("cmd", "MrisCopy", "MrisId", id);
 }
 
 function mris_delete(id) {
-    cmd("cmd", "MrisDelete", "MrisId", id);
+    cmdasync("cmd", "MrisDelete", "MrisId", id);
 }
 
 ///
@@ -284,11 +293,11 @@ function factusl_edit(id) {
 }
 
 function factusl_copy(id) {
-    cmd("cmd", "FactUslCopy", "FactUslId", id);
+    cmdasync("cmd", "FactUslCopy", "FactUslId", id);
 }
 
 function factusl_delete(id) {
-    cmd("cmd", "FactUslDelete", "FactUslId", id);
+    cmdasync("cmd", "FactUslDelete", "FactUslId", id);
 }
 
 function nakladnaya_setElementFocus(className, elId) {
@@ -326,14 +335,14 @@ function setIframeServiceHeight() {
 };
 
 function mris_detail(id) {
-    cmd("cmd", "MrisDetail", "MrisId", id);
+    cmdasync("cmd", "MrisDetail", "MrisId", id);
 }
 
 var vagon_pageId, vagon_docId, vagon_resultId;
 // Выгоны  ------------------------------------------------------------------------------------------------------------
 function Select_Vagon(control, callbackKey, result, isMultiReturn) {
     if (result.length == 0) return;
-    cmd("cmd", "OnSelectedVagon", "ResultId", result[0].value);
+    cmdasync("cmd", "OnSelectedVagon", "ResultId", result[0].value);
 }
 
 vagon_RecordsAdd.form = null;
@@ -470,7 +479,7 @@ function distrib_Records_Close(ifrIdp) {
 }
 
 function distrib_Records_Save() {
-    cmd("cmd", "DistribSave");
+    cmdasync("cmd", "DistribSave");
 }
 
 function frameDistrib_progressBarShow(show) {

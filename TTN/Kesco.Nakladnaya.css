@@ -20,6 +20,23 @@ div.inline_predicate_block
     vertical-align: middle;
 }
 
+.ui-tabs .ui-tabs-nav li {
+    height: 25px;
+    font-size: 20px;
+}
+
+.ui-tabs .ui-tabs-nav li a {
+    position: relative;
+    height: 14px;
+}
+
+.ui-tabs .ui-tabs-nav li {
+    height: 25px;
+    font-size: 20px;
+    top: -2px;
+}
+
+
 /*Блок включающий в себя метку и элемент управления, который может размещаться на одной линии с другими блоками с отступом*/
 div.inline_predicate_block_left
 {
