@@ -16,9 +16,6 @@
 [submodule "Kesco.Lib.Log"]
 	path = Kesco.Lib.Log
 	url = https://github.com/Kesco-m/Kesco.Lib.Log.git
-[submodule "Kesco.Lib.Web.Comet"]
-	path = Kesco.Lib.Web.Comet
-	url = https://github.com/Kesco-m/Kesco.Lib.Web.Comet.git
 [submodule "Kesco.Lib.Web.Controls.V4"]
 	path = Kesco.Lib.Web.Controls.V4
 	url = https://github.com/Kesco-m/Kesco.Lib.Web.Controls.V4.git
