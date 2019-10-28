@@ -25,3 +25,6 @@
 [submodule "Kesco.Lib.Web.Settings"]
 	path = Kesco.Lib.Web.Settings
 	url = https://github.com/Kesco-m/Kesco.Lib.Web.Settings.git
+[submodule "Kesco.Lib.Web.SignalR"]
+	path = Kesco.Lib.Web.SignalR
+	url = https://github.com/Kesco-m/Kesco.Lib.Web.SignalR.git
