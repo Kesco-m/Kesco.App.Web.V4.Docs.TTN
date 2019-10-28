@@ -28,3 +28,6 @@
 [submodule "Kesco.Lib.Web.SignalR"]
 	path = Kesco.Lib.Web.SignalR
 	url = https://github.com/Kesco-m/Kesco.Lib.Web.SignalR.git
+[submodule "_Assemblies"]
+	path = _Assemblies
+	url = https://github.com/Kesco-m/_Assemblies.git

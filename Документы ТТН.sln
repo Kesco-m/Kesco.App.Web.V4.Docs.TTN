@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kesco.Lib.Entities", "Kesco
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kesco.Lib.Localization", "Kesco.Lib.Localization\Kesco.Lib.Localization.csproj", "{895BE7DB-796B-40DD-B338-01B9C53F8308}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kesco.Lib.Web.Comet", "Kesco.Lib.Web.Comet\Kesco.Lib.Web.Comet\Kesco.Lib.Web.Comet.csproj", "{EB32DBFE-59E0-4F6C-A718-BE9BA708C64F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kesco.Lib.Web.SignalR", "Kesco.Lib.Web.SignalR\Kesco.Lib.Web.SignalR.csproj", "{EB32DBFE-59E0-4F6C-A718-BE9BA708C64F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Kesco.Lib.Web.Controls.V4", "Kesco.Lib.Web.Controls.V4\Kesco.Lib.Web.Controls.V4.csproj", "{C24FDAB8-D076-4F0C-8932-DB8160E4C4EF}"
 EndProject
