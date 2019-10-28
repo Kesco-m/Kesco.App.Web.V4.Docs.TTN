@@ -643,15 +643,6 @@ namespace Kesco.App.Web.Docs.TTN {
         protected global::Kesco.Lib.Web.DBSelect.V4.DBSDocument CarTtn;
         
         /// <summary>
-        /// efMonthOfResources элемент управления.
-        /// </summary>
-        /// <remarks>
-        /// Автоматически создаваемое поле.
-        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
-        /// </remarks>
-        protected global::Kesco.Lib.Web.Controls.V4.DatePicker efMonthOfResources;
-        
-        /// <summary>
         /// DBSShipperStore элемент управления.
         /// </summary>
         /// <remarks>
@@ -668,6 +659,15 @@ namespace Kesco.App.Web.Docs.TTN {
         /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
         /// </remarks>
         protected global::Kesco.Lib.Web.DBSelect.V4.DBSStore DBSPayerStore;
+        
+        /// <summary>
+        /// efMonthOfResources элемент управления.
+        /// </summary>
+        /// <remarks>
+        /// Автоматически создаваемое поле.
+        /// Для изменения переместите объявление поля из файла конструктора в файл кода программной части.
+        /// </remarks>
+        protected global::Kesco.Lib.Web.Controls.V4.DatePicker efMonthOfResources;
         
         /// <summary>
         /// MrisButtonPanel элемент управления.

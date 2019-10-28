@@ -19,6 +19,7 @@ using Kesco.Lib.Web.Controls.V4;
 using Kesco.Lib.Web.Controls.V4.Common;
 using Kesco.Lib.Web.Controls.V4.Common.DocumentPage;
 using Kesco.Lib.Web.Settings;
+using Kesco.Lib.Web.SignalR;
 using Convert = Kesco.Lib.ConvertExtention.Convert;
 
 namespace Kesco.App.Web.Docs.TTN
@@ -43,6 +44,7 @@ namespace Kesco.App.Web.Docs.TTN
 
         protected override void EntityInitialization(Entity copy = null)
         {
+            Entity = new FactUsl();
         }
 
         /// <summary>
@@ -69,6 +71,7 @@ namespace Kesco.App.Web.Docs.TTN
             efSummaNDS.PreRender += SummaNDS_PreRender;
             efVsego.PreRender += Vsego_PreRender;
             efCount.PreRender += Count_PreRender;
+            efCurrency.PreRender += Currency_PreRender;
 
             //efCount.Precision = factUsl.ResourceId > 0 ? factUsl.Resource.GetScale4Unit(factUsl.UnitId.ToString(), 3, Document.GOPersonDataField.Value.ToString()) : 3;
 
@@ -333,16 +336,16 @@ namespace Kesco.App.Web.Docs.TTN
                     var maxscale =
                         factUsl.Resource.GetScale4Unit(efUnit.Value, 3, Document.PlatelschikField.Value.ToString());
                     factUsl.Count = d_kol;
-                    efCount.Value = Convert.Decimal2Str((decimal) factUsl.Count, maxscale);
+                    efCount.Value = Convert.Decimal2Str((decimal) factUsl.Count, maxscale, false);
 
                     factUsl.CostOutNDS = _costOutNDS;
-                    efCostOutNDS.Value = Convert.Decimal2Str(factUsl.CostOutNDS, scale * 2);
+                    efCostOutNDS.Value = Convert.Decimal2Str(factUsl.CostOutNDS, scale * 2, false);
                     factUsl.SummaOutNDS = Convert.Round(_summaOutNDS, scale);
-                    efSummaOutNDS.Value = Convert.Decimal2Str(factUsl.SummaOutNDS, scale);
+                    efSummaOutNDS.Value = Convert.Decimal2Str(factUsl.SummaOutNDS, scale, false);
                     factUsl.SummaNDS = Convert.Round(_summaNDS, scale);
-                    efSummaNDS.Value = Convert.Decimal2Str(factUsl.SummaNDS, scale);
+                    efSummaNDS.Value = Convert.Decimal2Str(factUsl.SummaNDS, scale, false);
                     factUsl.Vsego = Convert.Round(_vsego, scale);
-                    efVsego.Value = Convert.Decimal2Str(factUsl.Vsego, scale);
+                    efVsego.Value = Convert.Decimal2Str(factUsl.Vsego, scale, false);
 
                     break;
                 case "DialogCostRecalc_No":
@@ -375,6 +378,7 @@ namespace Kesco.App.Web.Docs.TTN
         protected string id;
         protected string idDoc;
         protected string idParentPage;
+        protected string ue;
 
         // регион - рф
         public const int RegionRussia = 188;
@@ -427,8 +431,9 @@ namespace Kesco.App.Web.Docs.TTN
                 id = Request.QueryString["id"];
                 idDoc = Request.QueryString["idDoc"];
                 idParentPage = Request.QueryString["idpp"];
+                ue = Request.QueryString["ue"];
 
-                ParentPage = Application[idParentPage] as DocPage;
+                ParentPage = KescoHub.GetPage(idParentPage) as DocPage;
                 if (ParentPage == null)
                 {
                     ShowMessage(Resx.GetString("errRetrievingPageObject"), Resx.GetString("errPrinting"),
@@ -710,8 +715,11 @@ namespace Kesco.App.Web.Docs.TTN
         private void Count_PreRender(object sender, EventArgs e)
         {
             var maxscale = Scale;
-            if (!efUnit.Value.IsNullEmptyOrZero())
-                maxscale = factUsl.Resource.GetScale4Unit(efUnit.Value, 3, Document.PlatelschikField.Value.ToString());
+
+
+            if (!factUsl.UnitId.ToString().IsNullEmptyOrZero())
+                maxscale = factUsl.Resource.GetScale4Unit(factUsl.UnitId.ToString(), 3,
+                    Document.PlatelschikField.Value.ToString());
             efCount.Value = Convert.Decimal2StrInit((decimal) factUsl.Count, maxscale);
             efCount.Precision = maxscale;
         }
@@ -871,12 +879,19 @@ namespace Kesco.App.Web.Docs.TTN
         /// <summary>
         ///     Рендер валюты
         /// </summary>
-        protected void RenderCurrency()
+        protected void Currency_PreRender(object sender, EventArgs e)
         {
             switch (factUsl.Document.Type)
             {
                 case DocTypeEnum.ТоварноТранспортнаяНакладная:
-                    efCurrency.InnerText = Document.Currency.Name;
+                    if (!Document.Currency.Id.IsNullEmptyOrZero() && ue == "0")
+                    {
+                        efCurrency.InnerText = Document.Currency.Name;
+                    }
+                    else
+                    {
+                        efCurrency.InnerText = "у.е.";
+                    }
                     break;
                 case DocTypeEnum.АктВыполненныхРаботУслуг:
                     //Currency.Value = (akt._Currency.Length > 0 && UE == 0) ? akt.Currency._Name : "у.е.";

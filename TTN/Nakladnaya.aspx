@@ -36,7 +36,7 @@
                 <!--Документ корректируемый-->
                 <div class="label" id="labelCorrectableTtn"><%: FieldLabels[CorrectableTtn] %></div>
                 <v4dbselect:DBSDocument ID="CorrectableTtn" runat="server" Width="370px" NextControl="DateOfPosting"
-                                        AutoSetSingleValue="True" CSSClass="aligned_control" OnBeforeSearch="Document_BeforeSearch"/>
+                                        AutoSetSingleValue="False" CSSClass="aligned_control" OnBeforeSearch="Document_Corr_BeforeSearch"/>
             </div>
         </div>
     </div>
@@ -76,7 +76,7 @@
         <v4control:DatePicker ID="DateOfPosting" runat="server" NextControl="Currency" CSSClass="aligned_control"></v4control:DatePicker>
     </div>
 
-    <div class="predicate_block">
+    <div class="predicate_block" style="text-align: left !important">
         <!--Валюта оплаты-->
         <div class="label"><%: FieldLabels[Currency] %></div>
         <v4dbselect:DBSCurrency ID="Currency" runat="server" Width="100px" CLID="25" IsAlwaysAdvancedSearch="True" NextControl="Notes"
@@ -561,11 +561,6 @@
 </div>
 <!--Товары-->
 <div id="tabs-2">
-    <div id="MonthResourcePanel" class="predicate_block">
-        <div class="label"><%= Resx.GetString("TTN_lblMonthResource") %>:</div>
-        <v4control:DatePicker runat="server" ID="efMonthOfResources" MonthYearFormat="True" Width="200px"></v4control:DatePicker>
-    </div>
-
     <div id="ShipperStorePanel" class="predicate_block">
         <div class="label"><%= Resx.GetString("lblShipperStore") %>:</div>
         <v4dbselect:DBSStore ID="DBSShipperStore" runat="server" Width="370px" CLID="18" IsAlwaysAdvancedSearch="True" NextControl="DBSPayerStore"
@@ -574,8 +569,13 @@
 
     <div id="PayerStorePanel" class="predicate_block">
         <div class="label"><%= Resx.GetString("lblPayerStore") %>:</div>
-        <v4dbselect:DBSStore ID="DBSPayerStore" runat="server" Width="370px" CLID="18" IsAlwaysAdvancedSearch="True" NextControl="DBSShipperStore"
+        <v4dbselect:DBSStore ID="DBSPayerStore" runat="server" Width="370px" CLID="18" IsAlwaysAdvancedSearch="True" NextControl="efMonthOfResources"
                              AutoSetSingleValue="True" CSSClass="aligned_control" OnChanged="PayerStore_Changed"/>
+    </div>
+
+    <div id="MonthResourcePanel" class="predicate_block">
+        <div class="label"><%= Resx.GetString("TTN_lblMonthResource") %>:</div>
+        <v4control:DatePicker runat="server" ID="efMonthOfResources" MonthYearFormat="True" Width="200px"></v4control:DatePicker>
     </div>
 
     <div id="MrisButtonPanel" class="predicate_block" runat="server">
@@ -667,6 +667,8 @@
     </table>
 </div>
 </div>
+    
+<div class="marginA" id="divFormula"><%RenderFormula(Response.Output);%></div>
 
 <div class="spacer"></div>
 <div class="marginA">

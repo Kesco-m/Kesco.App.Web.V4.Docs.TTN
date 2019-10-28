@@ -276,7 +276,7 @@ namespace Kesco.App.Web.Docs.TTN
 			{
 				if (null == ctrl) continue;
                 
-				string textOfControl = Nakladnaya.GetCtrlText(ctrl, false, n.CurrentUser);
+				string textOfControl = _page.GetCtrlText(ctrl, false, n.CurrentUser);
 
 				if (textOfControl.Length < 1) continue;
 
@@ -566,7 +566,7 @@ namespace Kesco.App.Web.Docs.TTN
         private void Transport_Node_Changed(object sender, ProperyChangedEventArgs args)
 	    {
             if (!_transport_node.Value.IsNullEmptyOrZero())
-                _notes.Value = Document.GetTRWeselLastNote(_transport_node.Value, _page.Doc.TypeId.ToString(), _page.Doc.DocId, (_page.Doc.Date != DateTime.MinValue ? _page.Doc.Date : DateTime.Today));
+                _notes.Value = Document.GetTrWeselLastNote(_transport_node.Value, _page.Doc.TypeId.ToString(), _page.Doc.DocId, (_page.Doc.Date != DateTime.MinValue ? _page.Doc.Date : DateTime.Today));
             BindFieldsByPerson();
 	    }
 

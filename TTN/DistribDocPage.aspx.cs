@@ -13,7 +13,9 @@ using Kesco.Lib.Web.Controls.V4;
 using Kesco.Lib.Web.Controls.V4.Common;
 using Kesco.Lib.Entities.Documents.EF.Trade;
 using Kesco.Lib.Log;
+using Kesco.Lib.Web.Controls.V4.Common.DocumentPage;
 using Kesco.Lib.Web.Settings;
+using Kesco.Lib.Web.SignalR;
 
 namespace Kesco.App.Web.Docs.TTN
 {
@@ -194,7 +196,8 @@ namespace Kesco.App.Web.Docs.TTN
                 typeNabor = Request.QueryString["type"];
                 TypeNabor = typeNabor == "Payer";
 
-                ParentPage = Application[idParentPage] as Nakladnaya;
+                ParentPage = KescoHub.GetPage(idParentPage) as Nakladnaya;
+
                 if (ParentPage == null)
                 {
                     ShowMessage(Resx.GetString("errRetrievingPageObject"), Resx.GetString("errPrinting"), MessageStatus.Error);

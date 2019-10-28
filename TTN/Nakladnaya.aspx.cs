@@ -50,7 +50,6 @@ namespace Kesco.App.Web.Docs.TTN
         public Nakladnaya()
         {
             HelpUrl = "hlp/help.htm?id=1";
-            //LikeId = "TTN";
         }
 
         /// <summary>
@@ -74,8 +73,7 @@ namespace Kesco.App.Web.Docs.TTN
             //Корректируемый документ должен иметь тип ТТН
             CorrectableTtn.Filter.Type.Add(new DocTypeParam
                 {DocTypeEnum = Document.Type, QueryType = DocTypeQueryType.Equals});
-            //CorrectableTtn.Filter.NextType.Value = Document.TypeID.ToString();
-            //CorrectableTtn.Filter.NextType.FieldId = Document.CorrectingDocField.DocFieldId;
+
             CorrectableTtn.OnRenderNtf += Document_OnRenderNtf;
             CorrectableTtn.Changed += CorrectableTtn_Changed;
 
@@ -212,7 +210,11 @@ namespace Kesco.App.Web.Docs.TTN
                     Hide("divCorrectable");
                 JS.Write("accordionCloseAll();");
 
-                if (Document.PositionFactUsl.Count == 0) Hide("tabs3");
+                if (Document.PositionFactUsl.Count == 0)
+                {
+                    Hide("tabs3");
+                    JS.Write("$('#tabs').tabs('option', 'disabled', [2]);");
+                }
             }
             else
             {
@@ -276,6 +278,15 @@ namespace Kesco.App.Web.Docs.TTN
             }
         }
 
+        protected void RenderFormula(System.IO.TextWriter w)
+        {
+            if (Document.FormulaDescrField.Value != null)
+            {
+                if (!string.IsNullOrEmpty(Document.FormulaDescrField.Value.ToString()))
+                    w.Write(Document.FormulaDescrField.ValueString + "<br>");
+            }
+        }
+
         #endregion
 
         /// <summary>
@@ -312,7 +323,7 @@ namespace Kesco.App.Web.Docs.TTN
         #region declaration, property, field
 
         //Словарь содержит метки полей формы
-        public static Dictionary<V4Control, string> FieldLabels =
+        protected Dictionary<V4Control, string> FieldLabels =
             new Dictionary<V4Control, string>(new ReferenceEqualityComparer());
 
         /// <summary>
@@ -360,8 +371,6 @@ namespace Kesco.App.Web.Docs.TTN
         /// </summary>
         public override string HelpUrl { get; set; }
 
-        public override string LikeId { get; set; }
-
         public DBSStore ShipperStoreField => DBSShipperStore;
 
         public DBSStore PayerStoreField => DBSPayerStore;
@@ -369,7 +378,7 @@ namespace Kesco.App.Web.Docs.TTN
         #region Resx
 
         //Строки для формирования идентификаторов элементов заголовков разделов
-        public static class SectionPrefixes
+        public class SectionPrefixes
         {
             public const string General = "General";
             public const string Go = "Go";
@@ -406,21 +415,9 @@ namespace Kesco.App.Web.Docs.TTN
         public class ControlNtfsClass
         {
             public string AddressDate = "адрес не действует дату документа";
-
             public string BaseDocumentOnDate = "дата основания должна быть меньше или равна дате текущего документа";
-
-            //public const string DogovorTtn = "срок действия договора не соответствует дате накладной";
-            //public const string PersonOnDate = "валюта оплаты не соответствует валюте оплаты в приложении";
-            //public const string PersonOnDate = "валюта оплаты не соответствует валюте оплаты в счете";
-            //public const string PersonOnDate = "не указано приложение к договору";
             public string CurrencyContract = "валюта оплаты не соответствует валюте договора";
-
             public string CurrencyDocument = "валюта банковского счета не соответствует валюте документа";
-
-            //public const string StoreDocument = "расчетный счет не соответствует счету в договоре";
-            //public const string StoreEnclosure = "расчетный счет не соответствует счету в приложении";
-            //public const string BankDate = "у банка отсутствует реквизиты на дату";
-            //public const string BankName = "у банка отсутствует краткое название";
             public string DocumentForm = "документ не имеет электронной формы";
             public string EnclosureContract = "приложения не связаны с документом";
             public string InfoStore = "реквизиты не соответствуют расчетному счёту";
@@ -492,6 +489,7 @@ namespace Kesco.App.Web.Docs.TTN
         {
             var sectionTitles = new SectionTitlesClass
             {
+                Curator = Resx.GetString("TTN_lblSectionCurator"),
                 General = Resx.GetString("TTN_lblSectionGeneral"),
                 SignersOfPaper = Resx.GetString("TTN_lblSectionSignersOfPaper"),
                 Documents = Resx.GetString("TTN_lblSectionDocuments"),
@@ -506,9 +504,9 @@ namespace Kesco.App.Web.Docs.TTN
                 Resource = Resx.GetString("TTN_lblSectionResource"),
                 Services = Resx.GetString("TTN_lblSectionServices"),
                 Transport = Resx.GetString("TTN_lblSectionTransport"),
-                RequiredInfo = "<span class='required_red_info'>" + Resx.GetString("TTN_lblSectionRequiredInfo") +
-                               "</span>"
-            };
+                RequiredInfo = "<span class='required_red_info'>" + Resx.GetString("TTN_lblSectionRequiredInfo") + "</span>",
+                RequiredRedInfo = "<span class='required_red_info'>" + Resx.GetString("TTN_lblSectionRequiredInfo") + "</span>"
+    };
             return sectionTitles;
         }
 
@@ -609,7 +607,10 @@ namespace Kesco.App.Web.Docs.TTN
         {
             if (copy == null)
             {
-                Doc = new Lib.Entities.Documents.EF.Trade.TTN();
+                if (Entity == null)
+                {
+                    Doc = new Lib.Entities.Documents.EF.Trade.TTN();
+                }
             }
             else
             {
@@ -745,6 +746,13 @@ namespace Kesco.App.Web.Docs.TTN
                 }
             }
 
+            if (!V4IsPostBack)
+            {
+                DBSShipperStore.IsShowEditingStatus = false;
+                DBSPayerStore.IsShowEditingStatus = false;
+                CorrectableFlag.IsShowEditingStatus = false;
+            }
+
             //if (Doc.DocId != 0)
             //    Shipper.WeakList = DocPersons.GetDocsPersonsByDocId(Doc.DocId).Select(o => o.PersonId.ToString()).ToList();
         }
@@ -778,113 +786,134 @@ namespace Kesco.App.Web.Docs.TTN
             if (!Doc.IsNew && !Doc.DataUnavailable) return;
 
             if (!V4IsPostBack)
+            {
                 if (Doc.IsNew || Doc.DataUnavailable)
                     if (DocId != 0)
                     {
                         var d = new Document(DocId.ToString());
                         if (!d.Unavailable && !d.DataUnavailable && d.Id.Length > 0)
                         {
-                            FillByDocument(d);
-
-                            switch (d.DocType.Type)
+                            if (d.DocType.ChildOf(DocTypeEnum.Договор))
                             {
-                                case DocTypeEnum.СчетФактура:
-                                    // ToDo: реализовать
-                                    //Schet_InfoSet(d.Id);
-                                    break;
-                                case DocTypeEnum.Счет:
-                                    var sch = new Predoplata(d.Id);
-                                    //Doc.Date = sch.Date;
-                                    Doc.Date = DateTime.Today;
-                                    DateOfPosting.BindDocField.Value = Doc.Date;
-                                    Currency.BindDocField.Value = sch.CurrencyField.Value;
+                                Contract.Value = DocId.ToString();
+                                Contract_Changed(null, null);
+                                ShipperOrPayer_Changed(null, null);
+                                bool ue;
+                                CheckFieldDogovorUE(out ue);
+                            }
+                            else
+                            {
+                                FillByDocument(d);
 
-                                    Shipper.BindDocField.Value = sch.ProdavetsField.Value;
-                                    _shipperPanel.Person_Changed(null, null);
-                                    ShipperStore.BindDocField.Value = sch.ProdavetsRSSkladField.Value;
-                                    _shipperPanel.OnCurrencyChanged();
+                                switch (d.DocType.Type)
+                                {
+                                    case DocTypeEnum.Договор:
+                                    case DocTypeEnum.ДоговорКуплиПродажи:
+                                    case DocTypeEnum.ДоговорОказанияУслуг:
+                                        Contract.Value = DocId.ToString();
+                                        Contract_Changed(null, null);
+                                        ShipperOrPayer_Changed(null, null);
 
-                                    Director.BindDocField.Value = sch.RukovoditelTextField.Value;
-                                    Accountant.BindDocField.Value = sch.BuhgalterTextAccountField.Value;
-                                    StoreKeeper.BindDocField.Value = sch.BuhgalterTextField.Value;
+                                        break;
+                                    case DocTypeEnum.СчетФактура:
+                                        // ToDo: реализовать
+                                        //Schet_InfoSet(d.Id);
+                                        break;
+                                    case DocTypeEnum.Счет:
+                                        var sch = new Predoplata(d.Id);
+                                        //Doc.Date = sch.Date;
+                                        Doc.Date = DateTime.Today;
+                                        DateOfPosting.BindDocField.Value = Doc.Date;
+                                        Currency.BindDocField.Value = sch.CurrencyField.Value;
 
-                                    Payer.BindDocField.Value = sch.PokupatelField.Value;
-                                    _payerPanel.Person_Changed(null, null);
-                                    PayerStore.BindDocField.Value = sch.PokupatelRSSkladField.Value;
-                                    _payerPanel.OnCurrencyChanged();
+                                        Shipper.BindDocField.Value = sch.ProdavetsField.Value;
+                                        _shipperPanel.Person_Changed(null, null);
+                                        ShipperStore.BindDocField.Value = sch.ProdavetsRSSkladField.Value;
+                                        _shipperPanel.OnCurrencyChanged();
 
-                                    if (sch._Dogovor.Length > 0)
-                                    {
-                                        ContractInfo.BindDocField.Value = sch._Dogovor;
-                                        Enclosure.BindDocField.Value = sch._Prilozhenie;
-                                    }
+                                        Director.BindDocField.Value = sch.RukovoditelTextField.Value;
+                                        Accountant.BindDocField.Value = sch.BuhgalterTextAccountField.Value;
+                                        StoreKeeper.BindDocField.Value = sch.BuhgalterTextField.Value;
 
-                                    GP.BindDocField.Value = sch.PokupatelField.Value;
-                                    GpStore.BindDocField.Value = sch.PokupatelRSSkladField.Value;
-                                    _gpPanel.Person_Changed(null, null);
+                                        Payer.BindDocField.Value = sch.PokupatelField.Value;
+                                        _payerPanel.Person_Changed(null, null);
+                                        PayerStore.BindDocField.Value = sch.PokupatelRSSkladField.Value;
+                                        _payerPanel.OnCurrencyChanged();
 
-                                    GO.BindDocField.Value = sch.ProdavetsField.Value;
-                                    GoStore.BindDocField.Value = sch.ProdavetsRSSkladField.Value;
-                                    _goPanel.Person_Changed(null, null);
-
-                                    sch.LoadPositionPrepaymentInvoice();
-
-                                    var mrisList = new List<Mris>();
-                                    var factUslList = new List<FactUsl>();
-                                    foreach (var p in sch.PositionPrepaymentInvoice)
-                                        if (p.Resource.Parent.Equals(2))
+                                        if (sch._Dogovor.Length > 0)
                                         {
-                                            var mris = new Mris
-                                            {
-                                                TransactionType = 12,
-                                                DocumentId = p.DocumentId,
-                                                ResourceId = p.ResourceId,
-                                                ResourceRus = p.ResourceRus,
-                                                ResourceLat = p.ResourceLat,
-                                                Count = p.Count,
-                                                UnitId = p.UnitId,
-                                                Coef = p.Coef,
-                                                CostOutNDS = p.CostOutNDS,
-                                                StavkaNDSId = p.StavkaNDSId,
-                                                SummaNDS = p.SummaNDS,
-                                                SummaOutNDS = p.SummaOutNDS,
-                                                Vsego = p.Vsego,
-                                                Order = 1
-                                            };
-                                            mrisList.Add(mris);
-                                        }
-                                        else
-                                        {
-                                            var factUsl = new FactUsl
-                                            {
-                                                DocumentId = p.DocumentId,
-                                                ResourceId = p.ResourceId,
-                                                ResourceRus = p.ResourceRus,
-                                                ResourceLat = p.ResourceLat,
-                                                Count = p.Count,
-                                                UnitId = p.UnitId,
-                                                Coef = p.Coef,
-                                                CostOutNDS = p.CostOutNDS,
-                                                StavkaNDSId = p.StavkaNDSId,
-                                                SummaNDS = p.SummaNDS,
-                                                SummaOutNDS = p.SummaOutNDS,
-                                                Vsego = p.Vsego,
-                                                Order = 1
-                                            };
-                                            factUslList.Add(factUsl);
+                                            ContractInfo.BindDocField.Value = sch._Dogovor;
+                                            Enclosure.BindDocField.Value = sch._Prilozhenie;
                                         }
 
-                                    //Document.PositionMris = mrisList;
-                                    //Document.PositionFactUsl = factUslList;
+                                        GP.BindDocField.Value = sch.PokupatelField.Value;
+                                        GpStore.BindDocField.Value = sch.PokupatelRSSkladField.Value;
+                                        _gpPanel.Person_Changed(null, null);
 
-                                    break;
-                                case DocTypeEnum.ЗаявкаНаПокупку:
-                                    // ToDo: реализовать
-                                    //FillTTNBy_ZvkBuy(d.Id);
-                                    break;
+                                        GO.BindDocField.Value = sch.ProdavetsField.Value;
+                                        GoStore.BindDocField.Value = sch.ProdavetsRSSkladField.Value;
+                                        _goPanel.Person_Changed(null, null);
+
+                                        sch.LoadPositionPrepaymentInvoice();
+
+                                        var mrisList = new List<Mris>();
+                                        var factUslList = new List<FactUsl>();
+                                        foreach (var p in sch.PositionPrepaymentInvoice)
+                                            if (p.Resource.Parent.Equals(2))
+                                            {
+                                                var mris = new Mris
+                                                {
+                                                    TransactionType = 12,
+                                                    DocumentId = p.DocumentId,
+                                                    ResourceId = p.ResourceId,
+                                                    ResourceRus = p.ResourceRus,
+                                                    ResourceLat = p.ResourceLat,
+                                                    Count = p.Count,
+                                                    UnitId = p.UnitId,
+                                                    Coef = p.Coef,
+                                                    CostOutNDS = p.CostOutNDS,
+                                                    StavkaNDSId = p.StavkaNDSId,
+                                                    SummaNDS = p.SummaNDS,
+                                                    SummaOutNDS = p.SummaOutNDS,
+                                                    Vsego = p.Vsego,
+                                                    Order = 1
+                                                };
+                                                mrisList.Add(mris);
+                                            }
+                                            else
+                                            {
+                                                var factUsl = new FactUsl
+                                                {
+                                                    DocumentId = p.DocumentId,
+                                                    ResourceId = p.ResourceId,
+                                                    ResourceRus = p.ResourceRus,
+                                                    ResourceLat = p.ResourceLat,
+                                                    Count = p.Count,
+                                                    UnitId = p.UnitId,
+                                                    Coef = p.Coef,
+                                                    CostOutNDS = p.CostOutNDS,
+                                                    StavkaNDSId = p.StavkaNDSId,
+                                                    SummaNDS = p.SummaNDS,
+                                                    SummaOutNDS = p.SummaOutNDS,
+                                                    Vsego = p.Vsego,
+                                                    Order = 1
+                                                };
+                                                factUslList.Add(factUsl);
+                                            }
+
+                                        //Document.PositionMris = mrisList;
+                                        //Document.PositionFactUsl = factUslList;
+
+                                        break;
+                                    case DocTypeEnum.ЗаявкаНаПокупку:
+                                        // ToDo: реализовать
+                                        //FillTTNBy_ZvkBuy(d.Id);
+                                        break;
+                                }
                             }
                         }
                     }
+            }
 
             if (!CurrentPerson.IsNullEmptyOrZero())
             {
@@ -946,7 +975,7 @@ namespace Kesco.App.Web.Docs.TTN
         /// <returns></returns>
         private string SetKursAndScale()
         {
-            decimal kurs;
+            decimal kurs = 0;
             Document.KursField.Value = "";
             Document.FormulaDescrField.Value = "";
 
@@ -957,9 +986,38 @@ namespace Kesco.App.Web.Docs.TTN
             if (d == null || d.Unavailable) return "";
             if (!d.IsDogovor) return "";
 
-            if (!d.UE) return "";
+            if (d.VidVzaimoraschetovField.ValueInt == 1)
+            {
+                var strEncId = Enclosure.Value;
+                if (string.IsNullOrEmpty(strEncId))
+                {
+                    var p = GetObjectById(typeof(Prilozhenie), strEncId) as Prilozhenie;
+                    if (p != null && !p.Unavailable)
+                    {
+                        if (p.IsEnclosure)
+                        {
+                            if (!p.UE) return "";
 
-            kurs = 0;
+                            try
+                            {
+                                kurs = p.GetCoefUe2Valuta(Document.Date);
+                            }
+                            catch (Exception ex)
+                            {
+                                return ex.Message;
+                            }
+
+                            Currency.BindDocField.Value = p.Valyuta;
+                            Document.KursField.Value =
+                                kurs == 1 ? "" : Convert.Decimal2Str(kurs, Document.CurrencyScale * 2);
+                            Document.FormulaDescrField.Value = kurs == 1 ? "" : p.FormulaDescrField.Value;
+
+                        }
+                    }
+                }
+            }
+
+            if (!d.UE) return "";
             try
             {
                 kurs = d.GetCoefUe2Valuta(Document.Date);
@@ -975,6 +1033,46 @@ namespace Kesco.App.Web.Docs.TTN
 
             return "";
         }
+
+        /// <summary>
+        ///     Валюта взаиморасчетов
+        /// </summary>
+        /// <returns></returns>
+        void CheckFieldDogovorUE(out bool UE)
+        {
+            UE = false;
+
+            var strDocId = Contract.Value;
+            if (!string.IsNullOrEmpty(strDocId))
+            {
+                var d = GetObjectById(typeof(Dogovor), strDocId) as Dogovor;
+                if (d != null && !d.Unavailable && d.IsDogovor)
+                {
+                    UE = d.UE;
+                    if (d.VidVzaimoraschetovField.ValueInt == 1)
+                    {
+                        var strEncId = Enclosure.Value;
+                        if (string.IsNullOrEmpty(strEncId))
+                        {
+                            var p = GetObjectById(typeof(Prilozhenie), strEncId) as Prilozhenie;
+                            if (p != null && !p.Unavailable)
+                            {
+                                if (p.IsEnclosure)
+                                {
+                                    UE = p.UE;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Currency.IsReadOnly = UE;
+
+            if (Document.Signed || Document._CorrectingDoc.Length > 0 || Document.IsCorrected || IsInDocView) Currency.IsReadOnly = true;
+
+        }
+
 
         /// <summary>
         ///     Карточка клиента
@@ -1338,8 +1436,10 @@ namespace Kesco.App.Web.Docs.TTN
                 {
                     if (param["value"] == "true")
                     {
+                        var correctableTtnValue = CorrectableTtn.Value;
                         var ttn = new Lib.Entities.Documents.EF.Trade.TTN(CorrectableTtn.Value);
                         FillByCorrectableTtn(ttn);
+                        CorrectableTtn.Value = correctableTtnValue;
 
                         RenderNonPanelControlsNtf();
 
@@ -1768,12 +1868,12 @@ namespace Kesco.App.Web.Docs.TTN
 
             var listFormatN = new List<string>
             {
-                "Количество",
                 "ЦенаБезНДС",
                 "Величина100",
                 "СуммаБезНДС",
                 "СуммаНДС",
-                "Всего"
+                "Всего",
+                "Количество"
             };
 
             var listTextAlignCenter = new List<string>
@@ -1844,7 +1944,7 @@ namespace Kesco.App.Web.Docs.TTN
                         GridResource.SetServiceColumnDetail("mris_detail", new List<string> {"КодДвиженияНаСкладе"},
                             Resx.GetString("TTN_lblProductKits"));
                         GridResource.SetServiceColumnEdit("mris_edit", new List<string> {"КодДвиженияНаСкладе"},
-                            Resx.GetString("TTN_btnEditPosition"));
+                            DocEditable ? Resx.GetString("TTN_btnEditPosition") : Resx.GetString("TTN_btnViewPosition"));
                     }
 
                     break;
@@ -1859,7 +1959,8 @@ namespace Kesco.App.Web.Docs.TTN
             // Установка формата данных
             GridResource.Settings.SetColumnFormat(listFormatN, "N");
             GridResource.Settings.SetColumnFormatByValueScale("ЦенаБезНДС", 4, 2);
-            GridResource.Settings.SetColumnFormatByColumnScale("Количество", "Точность", 3);
+            GridResource.Settings.SetColumnFormatByColumnScale("Количество", "Точность", 4);
+            GridResource.Settings.SetColumnFormatDefaultScale("Количество", 4);
 
             //Установка точности по-умолчанию
             GridResource.Settings.SetColumnFormatDefaultScale(dictDefaultScale);
@@ -1880,7 +1981,7 @@ namespace Kesco.App.Web.Docs.TTN
         }
 
         /// <summary>
-        ///     Метод заполнения таблицы оказанных услоуг данными
+        ///     Метод заполнения таблицы оказанных услуг данными
         /// </summary>
         private void FillFactUslDataGrid(bool gotoLastPage)
         {
@@ -1994,7 +2095,7 @@ namespace Kesco.App.Web.Docs.TTN
             // Установка формата данных
             GridUsl.Settings.SetColumnFormat(listFormatN, "N");
             GridUsl.Settings.SetColumnFormatByValueScale("ЦенаБезНДС", 4, 2);
-            GridUsl.Settings.SetColumnFormatByColumnScale("КолExistServiceColumnичество", "Точность", 0);
+            GridUsl.Settings.SetColumnFormatByColumnScale("Количество", "Точность", 0);
             GridUsl.Settings.SetColumnFormatDefaultScale(dictDefaultScale);
             //Установка ссылки на поле
             GridUsl.Settings.SetColumnHref("РесурсРус", "КодРесурса", Config.resource_form);
@@ -2010,7 +2111,7 @@ namespace Kesco.App.Web.Docs.TTN
                 }
 
                 GridUsl.SetServiceColumnEdit("factusl_edit", new List<string> {"КодОказаннойУслуги"},
-                    Resx.GetString("TTN_btnEditPosition"));
+                    DocEditable? Resx.GetString("TTN_btnEditPosition"): Resx.GetString("TTN_btnViewPosition"));
             }
 
             GridUsl.RefreshGridData();
@@ -2229,17 +2330,20 @@ namespace Kesco.App.Web.Docs.TTN
 
         private void RenderItogTable()
         {
-            JS.Write("$('#mrisSum').text('{0}');", NFormat(ItogArray[0, 0]));
-            JS.Write("$('#mrisSumNDS').text('{0}');", NFormat(ItogArray[0, 1]));
-            JS.Write("$('#mrisSumAll').text('{0}');", NFormat(ItogArray[0, 2]));
+            bool ue;
+            CheckFieldDogovorUE(out ue);
 
-            JS.Write("$('#factUslSum').text('{0}');", NFormat(ItogArray[1, 0]));
-            JS.Write("$('#factUslSumNDS').text('{0}');", NFormat(ItogArray[1, 1]));
-            JS.Write("$('#factUslSumAll').text('{0}');", NFormat(ItogArray[1, 2]));
+            JS.Write("$('#mrisSum').text('{0}');", NFormat(ItogArray[0, 0], ue));
+            JS.Write("$('#mrisSumNDS').text('{0}');", NFormat(ItogArray[0, 1], ue));
+            JS.Write("$('#mrisSumAll').text('{0}');", NFormat(ItogArray[0, 2], ue));
 
-            JS.Write("$('#AllSum').text('{0}');", NFormat(ItogArray[0, 0] + ItogArray[1, 0]));
-            JS.Write("$('#AllNDSSum').text('{0}');", NFormat(ItogArray[0, 1] + ItogArray[1, 1]));
-            JS.Write("$('#AllAllSum').text('{0}');", NFormat(ItogArray[0, 2] + ItogArray[1, 2]));
+            JS.Write("$('#factUslSum').text('{0}');", NFormat(ItogArray[1, 0], ue));
+            JS.Write("$('#factUslSumNDS').text('{0}');", NFormat(ItogArray[1, 1], ue));
+            JS.Write("$('#factUslSumAll').text('{0}');", NFormat(ItogArray[1, 2], ue));
+
+            JS.Write("$('#AllSum').text('{0}');", NFormat(ItogArray[0, 0] + ItogArray[1, 0], ue));
+            JS.Write("$('#AllNDSSum').text('{0}');", NFormat(ItogArray[0, 1] + ItogArray[1, 1], ue));
+            JS.Write("$('#AllAllSum').text('{0}');", NFormat(ItogArray[0, 2] + ItogArray[1, 2], ue));
         }
 
         /// <summary>
@@ -2247,10 +2351,15 @@ namespace Kesco.App.Web.Docs.TTN
         /// </summary>
         /// <param name="d"></param>
         /// <returns></returns>
-        public string NFormat(decimal d)
+        public string NFormat(decimal d, bool ue)
         {
-            var c = GetObjectById(typeof(Resource), Currency.Value) as Resource;
-            return d.ToString("N2") + (c != null ? " " + c.Unit.ЕдиницаРус : "");
+            if (!ue)
+            {
+                var c = GetObjectById(typeof(Resource), Currency.Value) as Resource;
+                return d.ToString("N2") + (c != null ? " " + c.Unit.ЕдиницаРус : "");
+            }
+
+            return d.ToString("N2") + " у.е.";
         }
 
         #endregion
@@ -2279,7 +2388,7 @@ namespace Kesco.App.Web.Docs.TTN
         /// <param name="ctrl">Элемент управления</param>
         /// <param name="fEncoded">Если true, то строка будет закодирована в кодироку HTML</param>
         /// <returns>Строковое описание данных элемента управления</returns>
-        public static string GetCtrlText(V4Control ctrl, bool fEncoded, Employee currentUser)
+        public string GetCtrlText(V4Control ctrl, bool fEncoded, Employee currentUser)
         {
             var sbValues = new StringBuilder();
             if (ctrl is Select)
@@ -2332,7 +2441,7 @@ namespace Kesco.App.Web.Docs.TTN
             return sbValues.ToString();
         }
 
-        private static void AddTitle(string valueText, bool eEncoded, ref StringBuilder sbValues)
+        private void AddTitle(string valueText, bool eEncoded, ref StringBuilder sbValues)
         {
             if (eEncoded)
                 HttpUtility.HtmlEncode(sbValues.Append(valueText));
@@ -2672,7 +2781,7 @@ namespace Kesco.App.Web.Docs.TTN
             sender.GetFilter().IsAccountType.Enabled = true;
             sender.GetFilter().ManagerId.Value = personId;
             sender.GetFilter().StoreResourceId.Value = Currency.Value;
-            sender.GetFilter().ValidAt.Value = Doc.Date == DateTime.MinValue ? "" : Doc.Date.ToString("yyyyMMdd");
+            sender.GetFilter().ValidAt.Value = Doc.Date == DateTime.MinValue ? DateTime.Today.ToString("yyyyMMdd") : Doc.Date.ToString("yyyyMMdd");
         }
 
         /// <summary>
@@ -2754,6 +2863,39 @@ namespace Kesco.App.Web.Docs.TTN
                     {DocID = Contract.Value, QueryType = LinkedDocsType.AllReasons});
                 dbsdoc.Filter.LinkedDoc.Add(new LinkedDocParam
                     {DocID = Contract.Value, QueryType = LinkedDocsType.AllСonsequences});
+            }
+        }
+
+        protected void Document_Corr_BeforeSearch(object sender)
+        {
+            var dbsdoc = sender as DBSDocument;
+            if (null == dbsdoc) return;
+
+            //фильтр по дате документа
+            dbsdoc.Filter.Date.Value = Doc.Date.ToString("yyyyMMdd");
+            dbsdoc.Filter.Date.DateSearchType = DateSearchType.LessThan;
+
+            //фильтр по лицам документа
+            dbsdoc.Filter.PersonIDs.Clear();
+            if (!string.IsNullOrEmpty(Shipper.Value))
+                dbsdoc.Filter.PersonIDs.Add(Shipper.Value);
+
+            if (!string.IsNullOrEmpty(Payer.Value))
+                dbsdoc.Filter.PersonIDs.Add(Payer.Value);
+
+            dbsdoc.Filter.PersonIDs.UseAndOperator = true;
+
+            dbsdoc.Filter.HasForm.Value = "true";
+
+            dbsdoc.Filter.IDs.Inverse = true;
+            dbsdoc.Filter.IDs.Add(Doc.Id);
+
+            //фильтр по договору
+            dbsdoc.Filter.LinkedDoc.Clear();
+            if (!string.IsNullOrEmpty(Contract.Value))
+            {
+                dbsdoc.Filter.LinkedDoc.Add(new LinkedDocParam
+                    { DocID = Contract.Value, QueryType = LinkedDocsType.AllСonsequences });
             }
         }
 
@@ -3330,6 +3472,7 @@ namespace Kesco.App.Web.Docs.TTN
                 {
                     DBSShipperStore.ValueText = (s.IBAN.Length > 0 ? s.IBAN : s.Name) + " в " +
                                                 (card.NameRus.Length > 0 ? card.NameRus : card.NameLat);
+
                 }
             }
 
@@ -3491,8 +3634,8 @@ namespace Kesco.App.Web.Docs.TTN
                         Resx.GetString("errDoisserWarrning"),
                         Resx.GetString("CONFIRM_StdCaptionYes"),
                         Resx.GetString("CONFIRM_StdCaptionNo"),
-                        "cmd('cmd', 'FlagCorrecting_Uncheck');",
-                        "cmd('cmd', 'ShowCorrectingDoc', 'oldValue', '" + CorrectableTtn.Value + "');",
+                        "cmdasync('cmd', 'FlagCorrecting_Uncheck');",
+                        "cmdasync('cmd', 'ShowCorrectingDoc', 'oldValue', '" + CorrectableTtn.Value + "');",
                         null, null
                     );
                 else
@@ -3572,8 +3715,8 @@ namespace Kesco.App.Web.Docs.TTN
                         Resx.GetString("errDoisserWarrning"),
                         Resx.GetString("CONFIRM_StdCaptionYes"),
                         Resx.GetString("CONFIRM_StdCaptionNo"),
-                        "cmd('cmd', 'SetCorrectableDocument', 'value', 'true', 'oldValue', '" + e.OldValue + "');",
-                        "cmd('cmd', 'SetCorrectableDocument', 'value', 'false', 'oldValue', '" + e.OldValue + "');",
+                        "cmdasync('cmd', 'SetCorrectableDocument', 'value', 'true', 'oldValue', '" + e.OldValue + "');",
+                        "cmdasync('cmd', 'SetCorrectableDocument', 'value', 'false', 'oldValue', '" + e.OldValue + "');",
                         null, 405);
                 }
                 else
@@ -3583,8 +3726,8 @@ namespace Kesco.App.Web.Docs.TTN
                         Resx.GetString("errDoisserWarrning"),
                         Resx.GetString("CONFIRM_StdCaptionYes"),
                         Resx.GetString("CONFIRM_StdCaptionNo"),
-                        "cmd('cmd', 'FlagCorrecting_Uncheck');",
-                        "cmd('cmd', 'ShowCorrectingDoc', 'oldValue', '" + e.OldValue + "');",
+                        "cmdasync('cmd', 'FlagCorrecting_Uncheck');",
+                        "cmdasync('cmd', 'ShowCorrectingDoc', 'oldValue', '" + e.OldValue + "');",
                         null, null
                     );
                 }
@@ -3847,6 +3990,9 @@ namespace Kesco.App.Web.Docs.TTN
 
             Currency_Changed(null, null);
 
+            bool ue;
+            CheckFieldDogovorUE(out ue);
+
             if (fUpdated)
             {
                 SyncShipperAndGo("OnShipperToGo");
@@ -4097,8 +4243,10 @@ namespace Kesco.App.Web.Docs.TTN
         /// ///
         private void AddResource(string title = "", string pageId = "", string docId = "", string mrisId = "")
         {
-            JS.Write("resources_RecordsAdd('{0}','{1}','{2}','{3}');", HttpUtility.JavaScriptStringEncode(title),
-                pageId, docId, mrisId);
+            bool ue;
+            CheckFieldDogovorUE(out ue);
+            JS.Write("resources_RecordsAdd('{0}','{1}','{2}','{3}','{4}');", HttpUtility.JavaScriptStringEncode(title),
+                pageId, docId, mrisId, ue?1:0);
         }
 
         /// <summary>
@@ -4113,8 +4261,10 @@ namespace Kesco.App.Web.Docs.TTN
         /// ///
         private void AddService(string title = "", string pageId = "", string docId = "", string mrisId = "")
         {
-            JS.Write("services_RecordsAdd('{0}','{1}','{2}','{3}');", HttpUtility.JavaScriptStringEncode(title), pageId,
-                docId, mrisId);
+            bool ue;
+            CheckFieldDogovorUE(out ue);
+            JS.Write("services_RecordsAdd('{0}','{1}','{2}','{3}','{4}');", HttpUtility.JavaScriptStringEncode(title), pageId,
+                docId, mrisId, ue ? 1 : 0);
         }
 
         /// <summary>

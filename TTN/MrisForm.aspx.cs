@@ -24,6 +24,7 @@ using Kesco.Lib.Web.Controls.V4;
 using Kesco.Lib.Web.Controls.V4.Common;
 using Kesco.Lib.Web.Controls.V4.Common.DocumentPage;
 using Kesco.Lib.Web.Settings;
+using Kesco.Lib.Web.SignalR;
 using Convert = Kesco.Lib.ConvertExtention.Convert;
 
 namespace Kesco.App.Web.Docs.TTN
@@ -48,6 +49,7 @@ namespace Kesco.App.Web.Docs.TTN
 
         protected override void EntityInitialization(Entity copy = null)
         {
+            Entity = new Mris();
         }
 
         /// <summary>
@@ -93,9 +95,11 @@ namespace Kesco.App.Web.Docs.TTN
             efVsego.PreRender += Vsego_PreRender;
             efAktsiz.PreRender += Aktsiz_PreRender;
 
+            if (RestPanel.Visible) efRestType.Value = "2";
+
             DocumentReadOnly = !((DocPage) ParentPage).DocEditable;
+            GetOstatok();
             JS.Write("ShowControl('trUnitAdv','{0}');", DocumentReadOnly);
-            
         }
 
         /// <summary>
@@ -202,16 +206,16 @@ namespace Kesco.App.Web.Docs.TTN
                     var maxscale = mris.Resource.GetScale4Unit(mris.UnitId.ToString(), 3,
                         Document.PlatelschikField.Value.ToString());
                     mris.Count = d_kol;
-                    efCount.Value = Convert.Decimal2Str((decimal) mris.Count, maxscale);
+                    efCount.Value = Convert.Decimal2Str((decimal) mris.Count, maxscale, false);
 
                     mris.CostOutNDS = _costOutNDS;
-                    efCostOutNDS.Value = Convert.Decimal2Str(mris.CostOutNDS, scale * 2);
+                    efCostOutNDS.Value = Convert.Decimal2Str(mris.CostOutNDS, scale * 2, false);
                     mris.SummaOutNDS = Convert.Round(_summaOutNDS, scale);
-                    efSummaOutNDS.Value = Convert.Decimal2Str(mris.SummaOutNDS, scale);
+                    efSummaOutNDS.Value = Convert.Decimal2Str(mris.SummaOutNDS, scale, false);
                     mris.SummaNDS = Convert.Round(_summaNDS, scale);
-                    efSummaNDS.Value = Convert.Decimal2Str(mris.SummaNDS, scale);
+                    efSummaNDS.Value = Convert.Decimal2Str(mris.SummaNDS, scale, false);
                     mris.Vsego = Convert.Round(_vsego, scale);
-                    efVsego.Value = Convert.Decimal2Str(mris.Vsego, scale);
+                    efVsego.Value = Convert.Decimal2Str(mris.Vsego, scale, false);
                     break;
                 case "DialogCostRecalc_No":
                     ShowCalcMessage(mris.Recalc(param["value"], param["ndx"], param["name"], "0", Scale));
@@ -232,7 +236,7 @@ namespace Kesco.App.Web.Docs.TTN
                     if (RestValidation())
                     {
                         GetOstatok();
-                        JS.Write("rest_DialogShow('{0}');", Resx.GetString("TTN_lblRest"));
+                        //JS.Write("rest_DialogShow('{0}');", Resx.GetString("TTN_lblRest"));
                     }
 
                     break;
@@ -256,14 +260,13 @@ namespace Kesco.App.Web.Docs.TTN
         /// </summary>
         private void SetInitValue()
         {
-            btnRest.Text = Resx.GetString("TTN_lblCheckRest");
-
             efRestType.DataItems = new Dictionary<string, object>
             {
                 {"2", Resx.GetString("TTN_optTransactionBalance")},
                 {"1", Resx.GetString("TTN_optBalanceCompletedDocuments")},
                 {"0", Resx.GetString("TTN_optBalanceSignedDocuments")}
             };
+            efRestType.IsShowEditingStatus = false;
 
             efDateDocB.Value = DateDocE.Value = Document.Date.ToShortDateString();
 
@@ -281,7 +284,7 @@ namespace Kesco.App.Web.Docs.TTN
             if (!Document.IsNew && ((DocPage) ParentPage).IsEditable)
                 FillOrderList();
 
-            if (mris.ShipperStoreId == null) btnRest.Visible = false;
+            if (mris.ShipperStoreId == null) RestPanel.Visible = false;
         }
 
         private void FillOrderList()
@@ -568,6 +571,7 @@ namespace Kesco.App.Web.Docs.TTN
         protected string id;
         protected string idDoc;
         protected string idParentPage;
+        protected string ue;
 
         // регион - рф
         public const int RegionRussia = 188;
@@ -624,8 +628,9 @@ namespace Kesco.App.Web.Docs.TTN
                 id = Request.QueryString["id"];
                 idDoc = Request.QueryString["idDoc"];
                 idParentPage = Request.QueryString["idpp"];
+                ue = Request.QueryString["ue"];
 
-                ParentPage = Application[idParentPage] as DocPage;
+                ParentPage = KescoHub.GetPage(idParentPage) as DocPage;
                 if (ParentPage == null)
                 {
                     ShowMessage(Resx.GetString("errRetrievingPageObject"), Resx.GetString("errPrinting"),
@@ -689,6 +694,30 @@ namespace Kesco.App.Web.Docs.TTN
             efVsego.BindStringValue = mris.VsegoBind;
 
             base.EntityFieldInit();
+
+            if (!V4IsPostBack)
+            {
+
+                efStoreShipper.OriginalValue = efStoreShipper.Value;
+                efStorePayer.OriginalValue = efStorePayer.Value;
+                efResource.OriginalValue = efResource.Value;
+                efResourceRus.OriginalValue = efResourceRus.Value;
+                efResourceLat.OriginalValue = efResourceLat.Value;
+                efUnit.OriginalValue = efUnit.Value;
+                efCountry.OriginalValue = efCountry.Value;
+                efGTD.OriginalValue = efGTD.Value;
+                efCount.OriginalValue = efCount.Value;
+                efMCoef.OriginalValue = efMCoef.Value;
+                efCostOutNDS.OriginalValue = efCostOutNDS.Value;
+                efStavkaNDS.OriginalValue = efStavkaNDS.Value;
+                efSummaOutNDS.OriginalValue = efSummaOutNDS.Value;
+                efSummaNDS.OriginalValue = efSummaNDS.Value;
+                efAktsiz.OriginalValue = efAktsiz.Value;
+                efVsego.OriginalValue = efVsego.Value;
+
+                efOrder.IsShowEditingStatus = false;
+
+            }
         }
 
         /// <summary>
@@ -1052,6 +1081,7 @@ namespace Kesco.App.Web.Docs.TTN
         /// <summary>
         ///     Событие, устанавливающее параметры фильтрации перед поиском ставок в фильтре
         /// </summary>
+        /// </summary>
         /// <param name="sender">Контрол</param>
         private void StavkaNDS_BeforeSearch(object sender)
         {
@@ -1071,7 +1101,7 @@ namespace Kesco.App.Web.Docs.TTN
         /// <param name="e">Аргументы</param>
         protected void ShipperStore_Changed(object sender, ProperyChangedEventArgs e)
         {
-            //GetOstatok();
+            GetOstatok();
         }
 
         /// <summary>
@@ -1081,7 +1111,7 @@ namespace Kesco.App.Web.Docs.TTN
         /// <param name="e">Аргументы</param>
         protected void PayerStore_Changed(object sender, ProperyChangedEventArgs e)
         {
-            //GetOstatok();
+            GetOstatok();
         }
 
         /// <summary>
@@ -1100,6 +1130,7 @@ namespace Kesco.App.Web.Docs.TTN
                     efResourceLat.Value = "";
                 efResourceRus.RenderNtf();
                 efResourceLat.RenderNtf();
+                ClearOstatok();
             }
             else
             {
@@ -1112,7 +1143,6 @@ namespace Kesco.App.Web.Docs.TTN
                 UnitAdv_Changed(null, new ProperyChangedEventArgs(efUnitAdvOld, efUnitAdv.Value));
                 FillSpecNDSByParentResource(mris.Resource);
             }
-
             if (mris.UnitId != 0 && mris.UnitId != null) V4SetFocus("efCount");
         }
 
@@ -1232,6 +1262,7 @@ namespace Kesco.App.Web.Docs.TTN
             {
                 mris.UnitId = null;
                 efUnit.RefreshRequired = true;
+                ClearOstatok();
                 return;
             }
 
@@ -1239,6 +1270,8 @@ namespace Kesco.App.Web.Docs.TTN
 
             efUnitAdv.Value = "";
             SetAdvUnitInfo(e.OldValue);
+
+            GetOstatok();
 
             //efUnit.Value = mris.UnitId.ToString();
             //efUnit.ValueText = mris.Unit.Описание;
@@ -1323,7 +1356,16 @@ namespace Kesco.App.Web.Docs.TTN
         protected void Currency_PreRender(object sender, EventArgs e)
         {
             if (Document.Type.Equals(DocTypeEnum.ТоварноТранспортнаяНакладная))
-                efCurrency.InnerText = Document.Currency.Name;
+            {
+                if (!Document.Currency.Id.IsNullEmptyOrZero() && ue == "0")
+                {
+                    efCurrency.InnerText = Document.Currency.Name;
+                }
+                else
+                {
+                    efCurrency.InnerText = "у.е.";
+                }
+            }
         }
 
         /// <summary>
@@ -1575,7 +1617,9 @@ namespace Kesco.App.Web.Docs.TTN
         /// </summary>
         private void GetOstatok()
         {
-            if (mris.ResourceId == 0 || mris.ShipperStoreId == 0 || mris.UnitId == 0)
+            if (mris.ResourceId == 0 
+                || mris.ShipperStoreId == null || mris.ShipperStoreId == 0 
+                || mris.UnitId == null || mris.UnitId == 0)
             {
                 ClearOstatok();
                 return;
@@ -1586,15 +1630,16 @@ namespace Kesco.App.Web.Docs.TTN
 
             Unit_SymbolRus = " " + Unit_SymbolRus;
 
-            var ost1 = Store.GetOstatokResource(mris.ShipperStoreId.ToString(),
+            var ost1 = Store.GetOstatokResource(mris.ShipperStoreId.ToString(), 
                 mris.ResourceId.ToString(CultureInfo.InvariantCulture), _unit, Document.Date,
                 efResourceChild.Value.Equals("1"), efRestType.Value);
             var ost2 = Store.GetOstatokResource(mris.ShipperStoreId.ToString(),
                 mris.ResourceId.ToString(CultureInfo.InvariantCulture), _unit, Document.Date.AddDays(1),
                 efResourceChild.Value.Equals("1"), efRestType.Value);
 
-            efBDOst.Value = ost1;
-            efEDOst.Value = ost2;
+            
+            efBDOst.Value = string.IsNullOrEmpty(ost1) ? "0" : ost1;
+            efEDOst.Value = string.IsNullOrEmpty(ost2) ? "0" : ost2;
 
             efBDUnit.Value = efEDUnit.Value = Unit_SymbolRus;
         }

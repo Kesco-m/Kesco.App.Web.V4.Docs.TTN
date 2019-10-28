@@ -148,30 +148,32 @@ $(window).resize(function () {
     setIframeDistribHeight();
 });
 
-var resources_pageId, resources_docId, resources_resourceId;
+var resources_pageId, resources_docId, resources_resourceId, resources_ue;
 // Товары   ------------------------------------------------------------------------------------------------------------
 resources_RecordsAdd.form = null;
 var resources_ifrIsLoaded = false;
-function resources_RecordsAdd(titleForm, pageId, docId, resourceId) {
+function resources_RecordsAdd(titleForm, pageId, docId, resourceId, ue) {
     if (titleForm && titleForm != "") title = titleForm;
 
     if (pageId && pageId != "" && docId && docId != "" && resourceId && resourceId != "") {
         resources_pageId = pageId;
         resources_resourceId = resourceId;
         resources_docId = docId;
+        resources_ue = ue;
     } else {
         resources_pageId = "";
         resources_docId = "";
         resources_resourceId = 0;
+        resources_ue = ue;
     }
 
     var idContainer = "divResourceAdd";
-    var width = 571; var height = 501;
+    var width = 590; var height = 521;
 
     if (null == resources_RecordsAdd.form) {
         var onOpen = function () {
             if (!resources_ifrIsLoaded) {
-                $("#ifrMris").attr('src', "MrisForm.aspx?idpp=" + resources_pageId + "&idDoc=" + resources_docId + "&id=" + resources_resourceId);
+                $("#ifrMris").attr('src', "MrisForm.aspx?idpp=" + resources_pageId + "&idDoc=" + resources_docId + "&id=" + resources_resourceId + "&ue=" + resources_ue);
                 resources_ifrIsLoaded = true;
             }
         };
@@ -207,17 +209,19 @@ var services_pageId, services_docId, resources_servicesId;
 // Услуги  ------------------------------------------------------------------------------------------------------------
 services_RecordsAdd.form = null;
 var services_ifrIsLoaded = false;
-function services_RecordsAdd(titleForm, pageId, docId, serviceId) {
+function services_RecordsAdd(titleForm, pageId, docId, serviceId, ue) {
     if (titleForm && titleForm != "") title = titleForm;
 
     if (pageId && pageId != "" && docId && docId != "" && serviceId && serviceId != "") {
         services_pageId = pageId;
         resources_servicesId = serviceId;
         services_docId = docId;
+        resources_ue = ue;
     } else {
         services_pageId = "";
         services_docId = "";
         resources_servicesId = 0;
+        resources_ue = ue;
     }
 
     var idContainer = "divServiceAdd";
@@ -226,7 +230,7 @@ function services_RecordsAdd(titleForm, pageId, docId, serviceId) {
     if (null == services_RecordsAdd.form) {
         var onOpen = function () {
             if (!services_ifrIsLoaded) {
-                $("#ifrFactUsl").attr('src', "FactUslForm.aspx?idpp=" + services_pageId + "&idDoc=" + services_docId + "&id=" + resources_servicesId);
+                $("#ifrFactUsl").attr('src', "FactUslForm.aspx?idpp=" + services_pageId + "&idDoc=" + services_docId + "&id=" + resources_servicesId + "&ue=" + resources_ue);
                 services_ifrIsLoaded = true;
             }
         };
@@ -610,11 +614,6 @@ $(Nakladnaya.init);
 
 $(document).ready(function () {
     SetExpandAccordionByLastControl();
-
-//    $("*").keydown(function () {
-//        if (event.keyCode == 9) alert(this.id);
-//    });
-
 });
 
 function SetExpandAccordionByLastControl() {
@@ -657,8 +656,11 @@ function SetExpandAccordionByLastControl() {
         if (event.keyCode == 9 && document.activeElement.id == "PaymentDocuments_1") AccordionNext();
     });
 
-    $("#tabs1").off('keydown');
-    $("#tabs1").keydown(function () { if (event.keyCode == 9 && $("#accordion").accordion("option", "active") == 0) $("#accordion").accordion({ active: 0 }); });
+    //$("#tabs1").off('keydown');
+    $("#tabs1").keydown(function () {
+        if (event.keyCode == 9 && $("#accordion").accordion("option", "active") == 0) $("#accordion").accordion({ active: 0 });
+            $("#accordion").accordion({ active: 0 });
+    });
 }
 
 function AccordionNext() {
